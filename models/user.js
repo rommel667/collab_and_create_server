@@ -61,6 +61,12 @@ const userSchema = new mongoose.Schema({
             ref: 'TaskColumn'
         }
     ],
+    personalNoteCategories: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'NoteCategory'
+        }
+    ],
 }, { timestamps: true })
 
 export default mongoose.model('User', userSchema)

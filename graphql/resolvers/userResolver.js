@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import checkAuth from '../../utils/checkAuth.js';
 import taskColumnResolver from './taskColumnResolver.js'
+import noteCategoryResolver from './noteCategoryResolver.js';
 import { mailer } from '../../utils/mailer.js';
 
 
@@ -139,6 +140,7 @@ const resolvers = {
         registerUser: async (_, { userInput: { name, email, password } }) => {
             console.log("registerUser");
             const personalTasks = ["Unstarted", "Ongoing", "Finished"]
+            const personalCategories = ["Meetings Minutes", "Project Variables", "Others"]
             const user = await User.findOne({ email })
             if (user) {
                 throw new Error('Email already used')
@@ -153,6 +155,13 @@ const resolvers = {
                     })
                     return tc._id
                 }))
+                const noteCategories = await Promise.all(personalCategories.map(async (category, index) => {
+                    const nc = await noteCategoryResolver.Mutation.newNoteCategoryPersonal(_, {
+                        categoryName: category, 
+                        sequence: index + 1,
+                    })
+                    return nc._id
+                }))
                 const user = new User({
                     name: name,
                     email: email,
@@ -160,7 +169,8 @@ const resolvers = {
                     photo: "https://res.cloudinary.com/rommel/image/upload/v1601204560/tk58aebfctjwz7t74qya.jpg",
                     verified: false,
                     verificationCode: verificationCode,
-                    personalTaskColumns: taskColumns
+                    personalTaskColumns: taskColumns,
+                    personalNoteCategories: noteCategories
                 })
                 const result = await user.save()
                 
