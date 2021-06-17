@@ -195,17 +195,17 @@ const typeDefs = gql`
         rejectProjectInvite(projectId: ID!): Project!
 
         newTaskColumn(columnName: String!, projectId: ID!): TaskColumn!
-        newTaskColumnPersonal(columnName: String!, sequence: Int): TaskColumn!
+        initialTaskColumnPersonal(columnName: String!, sequence: Int): TaskColumn!
         moveTaskColumn(taskColumnIds: [ID]!, projectId: ID!): NewSequence! 
 
         newTask(description: String!, inCharge: [ID], columnId: ID! projectId: ID!): Task!
         moveTask(sourceColumnId: ID! destinationColumnId: ID! taskId: ID! projectId: ID!): MoveTaskUpdate!
 
         newNoteCategory(categoryName: String!, projectId: ID!): NoteCategory!
-        newNoteCategoryPersonal(categoryName: String!, sequence: Int): NoteCategory!
+        initialNoteCategoryPersonal(categoryName: String!, sequence: Int): NoteCategory!
         moveNoteCategory(noteCategoryIds: [ID]!, projectId: ID!): NewSequence! 
 
-        newNote(description: String!, categoryId: ID! projectId: ID!): Task!
+        newNote(description: String!, categoryId: ID! projectId: ID!): Note!
         moveNote(sourceColumnId: ID! destinationColumnId: ID! noteId: ID! projectId: ID!): MoveNoteUpdate!
     }
 

@@ -38,7 +38,7 @@ export default {
             const user = await checkAuth(context)
             try {
                 const project = await Project.findById(projectId)
-                const autoSequence = await project.taskColumns.length + 1
+                const autoSequence = await project.noteCategories.length + 1
                 const newNoteCategory = new NoteCategory({
                     categoryName, projectId, sequence: autoSequence, createdBy: user._id
                 })
@@ -47,7 +47,7 @@ export default {
                 return {
                     ...result._doc,
                     createdBy: userResolver.Query.userInfo(_, { userId: result.createdBy }),
-                    notes: noteResolver.Query.tasksByColumn(_, { noteIds: result.notes })
+                    notes: noteResolver.Query.notesByCategory(_, { noteIds: result.notes })
                 }
 
             }
@@ -55,12 +55,11 @@ export default {
                 throw new Error(err)
             }
         },
-        newNoteCategoryPersonal: async (_, { categoryName, sequence, projectId }, context) => {
+        initialNoteCategoryPersonal: async (_, { categoryName, sequence }) => {
             console.log("newNoteCategoryPersonal");
-            const user = await checkAuth(context)
             try {
                 const newNoteCategory = new NoteCategory({
-                    categoryName, sequence, projectId, createdBy: user._id
+                    categoryName, sequence
                 })
                 const result = await newNoteCategory.save()
                 return {

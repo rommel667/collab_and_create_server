@@ -149,14 +149,14 @@ const resolvers = {
             try {
                 const verificationCode = Math.floor(Math.random() * 8999 + 1000)
                 const taskColumns = await Promise.all(personalTasks.map(async (task, index) => {
-                    const tc = await taskColumnResolver.Mutation.newTaskColumnPersonal(_, {
+                    const tc = await taskColumnResolver.Mutation.initialTaskColumnPersonal(_, {
                         columnName: task, 
                         sequence: index + 1,
                     })
                     return tc._id
                 }))
                 const noteCategories = await Promise.all(personalCategories.map(async (category, index) => {
-                    const nc = await noteCategoryResolver.Mutation.newNoteCategoryPersonal(_, {
+                    const nc = await noteCategoryResolver.Mutation.initialNoteCategoryPersonal(_, {
                         categoryName: category, 
                         sequence: index + 1,
                     })

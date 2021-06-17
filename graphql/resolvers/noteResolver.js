@@ -1,5 +1,6 @@
 import Note from '../../models/note.js'
 import NoteCategory from '../../models/noteCategory.js'
+import Project from '../../models/project.js'
 import userResolver from './userResolver.js'
 import checkAuth from '../../utils/checkAuth.js'
 import { withFilter } from 'graphql-subscriptions'
@@ -58,7 +59,6 @@ const resolver = {
 
                 //find project to get confirmed members for subscription
                 const project = await Project.findById(projectId)
-
                 const newNote = new Note({
                     description,
                     categoryId,
@@ -76,7 +76,7 @@ const resolver = {
                     }
                 })
 
-                await NoteCategory.findByIdAndUpdate(categoryId, { $set: { tasks: [...noteCategory.notes, result._id] } }, { new: true })
+                await NoteCategory.findByIdAndUpdate(categoryId, { $set: { notes: [...noteCategory.notes, result._id] } }, { new: true })
                 return {
                     ...result._doc,
                     createdBy: userResolver.Query.userInfo(_, { userId: result.createdBy }),

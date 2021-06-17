@@ -1,13 +1,16 @@
+import dotenv from 'dotenv'
+dotenv.config()
 import { createTransport } from 'nodemailer'
 import Email from 'email-templates'
+
 
 const transporter = createTransport({
     host: 'smtp.gmail.com',
     port: 587,
     secure: false,
     auth: {
-        user: process.env.GMAIL_EMAIL,
-        pass: process.env.GMAIL_PASSWORD
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD
     }
 })
 
@@ -18,11 +21,10 @@ const email = new Email({
 });
 
 export const mailer = (userEmail, name, code) => {
-    console.log(userEmail);
     email.send({
         template: 'hello',
         message: {
-            from: process.env.GMAIL_EMAIL,
+            from: process.env.EMAIL_USER,
             to: userEmail,
         },
         locals: {

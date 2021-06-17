@@ -54,12 +54,11 @@ export default {
                 throw new Error(err)
             }
         },
-        newTaskColumnPersonal: async (_, { columnName, sequence, projectId }, context) => {
+        initialTaskColumnPersonal: async (_, { columnName, sequence}) => {
             console.log("newTaskColumnPersonal");
-            const user = await checkAuth(context)
             try {
                 const newTaskColumn = new TaskColumn({
-                    columnName, sequence, projectId, createdBy: user._id
+                    columnName, sequence
                 })
                 const result = await newTaskColumn.save()
                 return {
