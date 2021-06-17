@@ -51,12 +51,12 @@ const projectSchema = new mongoose.Schema({
             ref: 'TaskColumn'
         }
     ],
-    notes: [
+    noteCategories: [
         {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'Note'
+            ref: 'NoteCategory'
         }
-    ]
+    ],
 
 }, { timestamps: true })
 

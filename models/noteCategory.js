@@ -1,29 +1,28 @@
 import mongoose from 'mongoose'
 
-const noteSchema = new mongoose.Schema({
-    description: {
+const noteCategorySchema = new mongoose.Schema({
+    categoryName: {
         type: String,
         required: true
     },
-    categoryId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'NoteCategory'
-    },
-    projectId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Project'
+    sequence: {
+        type: Number,
+        required: true
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     },
-    forWhom: [
+    projectId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Project'
+    },
+    notes: [
         {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'User'
+            ref: 'Note'
         }
     ],
-
 }, { timestamps: true })
 
-export default mongoose.model('Note', noteSchema)
+export default mongoose.model('NoteCategory', noteCategorySchema)

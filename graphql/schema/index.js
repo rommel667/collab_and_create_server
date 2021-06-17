@@ -72,7 +72,7 @@ const typeDefs = gql`
         confirmedMembers: [User]!
         rejectedInviteMembers: [User]!
         taskColumns: [TaskColumn]!
-        notes: [Note]!
+        noteCategories: [NoteCategory]!
         createdAt: String!
         updatedAt: String!
     }
@@ -113,10 +113,24 @@ const typeDefs = gql`
         projectId: ID
     }
 
+    type NoteCategory {
+        _id: ID!
+        categoryName: String!
+        sequence: Int!
+        createdBy: User
+        notes: [Note]!
+        projectId: ID!
+        createdAt: String!
+        updatedAt: String!
+    }
+
     type Note {
         _id: ID!
         description: String!
         createdBy: User!
+        projectId: ID!
+        categoryId: ID!
+        forWhom: [User]!
         createdAt: String!
         updatedAt: String!
     }
