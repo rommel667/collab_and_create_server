@@ -82,7 +82,7 @@ export default {
 
                 await context.pubsub.publish(MOVE_NOTE_CATEGORY, {
                     moveNoteCategory: {
-                        newSequenceIds: taskColumnIds,
+                        newSequenceIds: noteCategoryIds,
                         confirmedMembers: project.confirmedMembers.filter(id => id != user._id),
                         projectId
                     }

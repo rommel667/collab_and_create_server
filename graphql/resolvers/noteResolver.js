@@ -51,7 +51,7 @@ const resolver = {
 
     Mutation: {
         newNote: async (_, { description, categoryId, projectId }, context) => {
-            console.log("newNote");
+            console.log("newNote",  description, categoryId, projectId);
             const user = await checkAuth(context)
 
             try {
@@ -86,44 +86,44 @@ const resolver = {
                 throw new Error(err)
             }
         },
-        // moveNote: async (_, { sourceColumnId, destinationColumnId, taskId, projectId }, context) => {
-        //     console.log("moveTask");
-        //     const user = await checkAuth(context)
-        //     try {
+        moveNote: async (_, { sourceCategoryId, destinationCategoryId, noteId, projectId }, context) => {
+            console.log("moveNote");
+            const user = await checkAuth(context)
+            try {
                 
-        //         const project = await Project.findById(projectId)
+                const project = await Project.findById(projectId)
 
-        //         const sourceColumn = await TaskColumn.findById(sourceColumnId)
-        //         const destinationColumn = await TaskColumn.findById(destinationColumnId)
+                const sourceCategory = await NoteCategory.findById(sourceCategoryId)
+                const destinationCategory = await NoteCategory.findById(destinationCategoryId)
 
-        //         const updatedSourceColumn = await TaskColumn.findByIdAndUpdate(
-        //             sourceColumnId, { $set: { tasks: [...sourceColumn.tasks.filter(id => id != taskId)] } }, { new: true }
-        //         )
-        //         const updatedDestinationColumn = await TaskColumn.findByIdAndUpdate(
-        //             destinationColumnId, { $set: { tasks: [...destinationColumn.tasks, taskId] } }, { new: true }
-        //         )
+                const updatedSourceCategory = await NoteCategory.findByIdAndUpdate(
+                    sourceCategoryId, { $set: { notes: [...sourceCategory.notes.filter(id => id != noteId)] } }, { new: true }
+                )
+                const updatedDestinationCategory = await NoteCategory.findByIdAndUpdate(
+                    destinationCategoryId, { $set: { notes: [...destinationCategory.notes, noteId] } }, { new: true }
+                )
 
-        //         await context.pubsub.publish(MOVE_TASK, {
-        //             moveTask: {
-        //                 message: "Update successful",
-        //                 sourceColumnId, destinationColumnId, taskId,
-        //                 confirmedMembers: project.confirmedMembers.filter(id => id != user._id),
-        //                 projectId
-        //             }
-        //         })
+                await context.pubsub.publish(MOVE_NOTE, {
+                    moveNote: {
+                        message: "Update successful",
+                        sourceCategoryId, destinationCategoryId, noteId,
+                        confirmedMembers: project.confirmedMembers.filter(id => id != user._id),
+                        projectId
+                    }
+                })
 
 
-        //         if (updatedSourceColumn && updatedDestinationColumn) {
-        //             return { message: "Update successful", sourceColumnId, destinationColumnId, taskId }
-        //         } else {
-        //             return { message: "Update failed" }
-        //         }
+                if (updatedSourceCategory && updatedDestinationCategory) {
+                    return { message: "Update successful", sourceCategoryId, destinationCategoryId, noteId, }
+                } else {
+                    return { message: "Update failed" }
+                }
 
-        //     }
-        //     catch (err) {
-        //         throw new Error(err)
-        //     }
-        // },
+            }
+            catch (err) {
+                throw new Error(err)
+            }
+        },
         
     },
     Subscription: {
@@ -135,14 +135,15 @@ const resolver = {
                 },
             ),
         },
-        // moveTask: {
-        //     subscribe: withFilter(
-        //         (_, __, { pubsub }) => pubsub.asyncIterator(MOVE_TASK),
-        //         (payload, variables) => {
-        //             return (payload.moveTask.confirmedMembers.includes(variables.userId));
-        //         },
-        //     ),
-        // },
+        moveNote: {
+            subscribe: withFilter(
+                (_, __, { pubsub }) => pubsub.asyncIterator(MOVE_NOTE),
+                (payload, variables) => {
+                    console.log(payload)
+                    return (payload.moveNote.confirmedMembers.includes(variables.userId));
+                },
+            ),
+        },
 
 
     }

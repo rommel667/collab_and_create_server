@@ -206,7 +206,7 @@ const typeDefs = gql`
         moveNoteCategory(noteCategoryIds: [ID]!, projectId: ID!): NewSequence! 
 
         newNote(description: String!, categoryId: ID! projectId: ID!): Note!
-        moveNote(sourceColumnId: ID! destinationColumnId: ID! noteId: ID! projectId: ID!): MoveNoteUpdate!
+        moveNote(sourceCategoryId: ID! destinationCategoryId: ID! noteId: ID! projectId: ID!): MoveNoteUpdate!
     }
 
     type Subscription {
