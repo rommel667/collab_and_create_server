@@ -50,13 +50,36 @@ const resolver = {
     },
 
     Mutation: {
+        newNotePersonal: async (_, { description, categoryId }, context) => {
+            console.log("newNotePersonal");
+            const user = await checkAuth(context)
+            try {
+                const noteCategory = await NoteCategory.findById(categoryId)
+              
+                const newNote = new Note({
+                    description,
+                    categoryId,
+                    createdBy: user._id
+                })
+
+                const result = await newNote.save()
+
+                await NoteCategory.findByIdAndUpdate(categoryId, { $set: { notes: [...noteCategory.notes, result._id] } }, { new: true })
+                return {
+                    ...result._doc,
+                }
+            }
+            catch (err) {
+                throw new Error(err)
+            }
+        },
         newNote: async (_, { description, categoryId, projectId }, context) => {
-            console.log("newNote",  description, categoryId, projectId);
+            console.log("newNote");
             const user = await checkAuth(context)
 
             try {
                 const noteCategory = await NoteCategory.findById(categoryId)
-
+                console.log("NOTE", noteCategory);
                 //find project to get confirmed members for subscription
                 const project = await Project.findById(projectId)
                 const newNote = new Note({

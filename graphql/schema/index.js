@@ -17,7 +17,6 @@ const typeDefs = gql`
     input ProjectInput {
         projectName: String!
         description: String!
-        icon: String!
         techStacks: [String]!
         unconfirmMembers: [ID]!
     }
@@ -66,7 +65,6 @@ const typeDefs = gql`
         projectName: String!
         description: String!
         status: String!
-        icon: String!
         techStacks: [String]!
         createdBy: User!
         unconfirmMembers: [User]!
@@ -102,7 +100,7 @@ const typeDefs = gql`
         inCharge: [User]
         createdAt: String!
         updatedAt: String!
-        projectId: ID!
+        projectId: ID
         columnId: ID!
     }
 
@@ -137,7 +135,7 @@ const typeDefs = gql`
         _id: ID!
         description: String!
         createdBy: User!
-        projectId: ID!
+        projectId: ID
         categoryId: ID!
         createdAt: String!
         updatedAt: String!
@@ -199,6 +197,7 @@ const typeDefs = gql`
         moveTaskColumn(taskColumnIds: [ID]!, projectId: ID!): NewSequence! 
 
         newTask(description: String!, inCharge: [ID], columnId: ID! projectId: ID!): Task!
+        newTaskPersonal(description: String!, columnId: ID!): Task!
         moveTask(sourceColumnId: ID! destinationColumnId: ID! taskId: ID! projectId: ID!): MoveTaskUpdate!
 
         newNoteCategory(categoryName: String!, projectId: ID!): NoteCategory!
@@ -206,17 +205,20 @@ const typeDefs = gql`
         moveNoteCategory(noteCategoryIds: [ID]!, projectId: ID!): NewSequence! 
 
         newNote(description: String!, categoryId: ID! projectId: ID!): Note!
+        newNotePersonal(description: String!, categoryId: ID!): Note!
         moveNote(sourceCategoryId: ID! destinationCategoryId: ID! noteId: ID! projectId: ID!): MoveNoteUpdate!
     }
 
     type Subscription {
         newProject(userId: ID!): Project
 
+        newTaskColumn(userId: ID!): TaskColumn!
         moveTaskColumn(userId: ID!): NewSequence
 
         newTask(userId: ID!): Task
         moveTask(userId: ID!): MoveTaskUpdate!
 
+        newNoteCategory(userId: ID!): NoteCategory!
         moveNoteCategory(userId: ID!): NewSequence
 
         newNote(userId: ID!): Note

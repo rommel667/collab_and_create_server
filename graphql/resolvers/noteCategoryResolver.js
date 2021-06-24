@@ -6,6 +6,7 @@ import noteResolver from './noteResolver.js'
 import { withFilter } from 'graphql-subscriptions'
 import user from '../../models/user.js'
 
+const NEW_NOTE_CATEGORY = "NEW_NOTE_CATEGORY"
 const MOVE_NOTE_CATEGORY = "MOVE_NOTE_CATEGORY"
 
 export default {
@@ -44,10 +45,19 @@ export default {
                 })
                 const result = await newNoteCategory.save()
                 const projectNoteCategoryUpdate = await Project.findByIdAndUpdate({ _id: projectId }, { $set: { noteCategories: [...project.noteCategories, result._id] } }, { new: true })
+                
+                await context.pubsub.publish(NEW_NOTE_CATEGORY, {
+                    newNoteCategory: {
+                        ...result._doc,
+                        createdBy: user,
+                        confirmedMembers: project.confirmedMembers.filter(id => id != user._id),
+                    }
+                })
+                
                 return {
                     ...result._doc,
                     createdBy: userResolver.Query.userInfo(_, { userId: result.createdBy }),
-                    notes: noteResolver.Query.notesByCategory(_, { noteIds: result.notes })
+                    // notes: noteResolver.Query.notesByCategory(_, { noteIds: result.notes })
                 }
 
             }
@@ -101,6 +111,16 @@ export default {
 
     },
     Subscription: {
+        newNoteCategory: {
+            subscribe: withFilter(
+                (_, __, { pubsub }) => pubsub.asyncIterator(NEW_NOTE_CATEGORY),
+                (payload, variables) => {
+                    console.log("PAYLOAD",payload);
+                    console.log("VARIABLES",variables);
+                    return (payload.newNoteCategory.confirmedMembers.includes(variables.userId));
+                },
+            ),
+        },
         moveNoteCategory: {
             subscribe: withFilter(
                 (_, __, { pubsub }) => pubsub.asyncIterator(MOVE_NOTE_CATEGORY),

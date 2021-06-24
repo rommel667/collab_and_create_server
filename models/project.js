@@ -13,10 +13,6 @@ const projectSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    icon: {
-        type: String,
-        required: true
-    },
     techStacks: [
         {
             type: String,

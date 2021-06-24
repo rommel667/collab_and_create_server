@@ -89,12 +89,12 @@ export default {
     },
 
     Mutation: {
-        newProject: async (_, { projectInput: { projectName, description, icon, techStacks, unconfirmMembers } }, context) => {
+        newProject: async (_, { projectInput: { projectName, description, techStacks, unconfirmMembers } }, context) => {
             console.log("newProject");
             const user = await checkAuth(context)
             try {
                 const newProject = new Project({
-                    projectName, description, icon, status: "Ongoing",
+                    projectName, description, status: "Ongoing",
                     techStacks, createdBy: user._id,
                     confirmedMembers: [user._id],
                     unconfirmMembers

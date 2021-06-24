@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken'
 import checkAuth from '../../utils/checkAuth.js';
 import taskColumnResolver from './taskColumnResolver.js'
 import noteCategoryResolver from './noteCategoryResolver.js';
+import teamResolver from './teamResolver.js'
 import { mailer } from '../../utils/mailer.js';
 
 
@@ -18,8 +19,11 @@ const resolvers = {
                     ...myInfo._doc,
                     password: "password",
                     colleagues: resolvers.Query.usersInfo(_, { userIds: myInfo.colleagues }),
-                    myPendingInvitesRequest: resolvers.Query.usersInfo(_, { userIds: myInfo.myPendingInvitesRequest }),
-                    myPendingInvitesRespond: resolvers.Query.usersInfo(_, { userIds: myInfo.myPendingInvitesRespond })
+                    verifiedTeams: teamResolver.Query.verifiedTeams(_, __, context),
+                    personalTaskColumns: taskColumnResolver.Query.taskColumnsByProject(_, { taskColumnIds: myInfo.personalTaskColumns }),
+                    personalNoteCategories: noteCategoryResolver.Query.noteCategoriesByProject(_, { noteCategoryIds: myInfo.personalNoteCategories }),
+                    // myPendingInvitesRequest: resolvers.Query.usersInfo(_, { userIds: myInfo.myPendingInvitesRequest }),
+                    // myPendingInvitesRespond: resolvers.Query.usersInfo(_, { userIds: myInfo.myPendingInvitesRespond })
                 }
             }
             catch (err) {
@@ -130,7 +134,6 @@ const resolvers = {
                     name: user.name,
                     photo: user.photo
                 }, process.env.JWT_SECRET, { expiresIn: '10h' })
-                console.log(token);
                 return { ...user._doc, token }
             }
             catch (err) {
@@ -139,12 +142,12 @@ const resolvers = {
         },
         registerUser: async (_, { userInput: { name, email, password } }) => {
             console.log("registerUser");
-            const personalTasks = ["Unstarted", "Ongoing", "Finished"]
-            const personalCategories = ["Meetings Minutes", "Project Variables", "Others"]
             const user = await User.findOne({ email })
             if (user) {
-                throw new Error('Email already used')
+                throw new Error('Email already registered')
             }
+            const personalTasks = ["Unstarted", "Ongoing", "Finished"]
+            const personalCategories = ["Meetings Minutes", "Project Variables", "Others"]
             const hashedPassword = await bcrypt.hash(password, 12)
             try {
                 const verificationCode = Math.floor(Math.random() * 8999 + 1000)
@@ -185,7 +188,7 @@ const resolvers = {
             }
         },
         signInWithGoogle: async (_, { name, email, photo, token }) => {
-            console.log("signInWithGoogle", name, email, token, photo);
+            console.log("signInWithGoogle");
             try {
                 const user = await User.findOne({ email })
                 const hashedPassword = await bcrypt.hash(`${process.env.GOOGLE_LOGIN_PASSWORD}${email}`, 12)
