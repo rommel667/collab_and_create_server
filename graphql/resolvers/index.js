@@ -26,6 +26,7 @@ const resolvers = {
         ...teamResolver.Mutation,
     },
     Subscription: {
+        ...userResolver.Subscription,
         ...projectResolver.Subscription,
         ...taskColumnResolver.Subscription,
         ...taskResolver.Subscription,

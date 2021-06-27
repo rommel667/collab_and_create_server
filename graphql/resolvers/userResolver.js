@@ -6,7 +6,13 @@ import taskColumnResolver from './taskColumnResolver.js'
 import noteCategoryResolver from './noteCategoryResolver.js';
 import teamResolver from './teamResolver.js'
 import { mailer } from '../../utils/mailer.js';
+import { withFilter } from 'graphql-subscriptions'
 
+
+const SEND_INVITE = "SEND_INVITE"
+const CANCEL_REQUEST = "CANCEL_REQUEST"
+const ACCEPT_INVITE = "ACCEPT_INVITE"
+const REJECT_INVITE = "REJECT_INVITE"
 
 const resolvers = {
     Query: {
@@ -18,10 +24,11 @@ const resolvers = {
                 return {
                     ...myInfo._doc,
                     password: "password",
+                    createdAt: new Date(myInfo.createdAt).toISOString(),
                     colleagues: resolvers.Query.usersInfo(_, { userIds: myInfo.colleagues }),
                     verifiedTeams: teamResolver.Query.verifiedTeams(_, __, context),
-                    personalTaskColumns: taskColumnResolver.Query.taskColumnsByProject(_, { taskColumnIds: myInfo.personalTaskColumns }),
-                    personalNoteCategories: noteCategoryResolver.Query.noteCategoriesByProject(_, { noteCategoryIds: myInfo.personalNoteCategories }),
+                    personalTaskColumns: taskColumnResolver.Query.taskColumnsPersonal(_, { taskColumnIds: myInfo.personalTaskColumns }),
+                    personalNoteCategories: noteCategoryResolver.Query.noteCategoriesPersonal(_, { noteCategoryIds: myInfo.personalNoteCategories }),
                     // myPendingInvitesRequest: resolvers.Query.usersInfo(_, { userIds: myInfo.myPendingInvitesRequest }),
                     // myPendingInvitesRespond: resolvers.Query.usersInfo(_, { userIds: myInfo.myPendingInvitesRespond })
                 }
@@ -58,12 +65,14 @@ const resolvers = {
             try {
                 const userDetails = await User.findById(user._id)
                 const suggestions = await User.find({
-                    _id: { $nin: [
-                        user._id, 
-                        ...userDetails.colleagues,
-                        ...userDetails.myPendingInvitesRequest,
-                        ...userDetails.myPendingInvitesRespond
-                    ] }
+                    _id: {
+                        $nin: [
+                            user._id,
+                            ...userDetails.colleagues,
+                            ...userDetails.myPendingInvitesRequest,
+                            ...userDetails.myPendingInvitesRespond
+                        ]
+                    }
                 })
                 return suggestions.map(user => {
                     return { ...user._doc }
@@ -79,7 +88,7 @@ const resolvers = {
             try {
                 const userDetails = await User.findById(user._id)
                 return userDetails.colleagues.map(id => {
-                    return resolvers.Query.userInfo( _, { userId: id } )
+                    return resolvers.Query.userInfo(_, { userId: id })
                 })
             }
             catch (err) {
@@ -92,7 +101,7 @@ const resolvers = {
             try {
                 const userDetails = await User.findById(user._id)
                 return userDetails.myPendingInvitesRequest.map(id => {
-                    return resolvers.Query.userInfo( _, { userId: id } )
+                    return resolvers.Query.userInfo(_, { userId: id })
                 })
             }
             catch (err) {
@@ -105,7 +114,7 @@ const resolvers = {
             try {
                 const userDetails = await User.findById(user._id)
                 return userDetails.myPendingInvitesRespond.map(id => {
-                    return resolvers.Query.userInfo( _, { userId: id } )
+                    return resolvers.Query.userInfo(_, { userId: id })
                 })
             }
             catch (err) {
@@ -153,14 +162,14 @@ const resolvers = {
                 const verificationCode = Math.floor(Math.random() * 8999 + 1000)
                 const taskColumns = await Promise.all(personalTasks.map(async (task, index) => {
                     const tc = await taskColumnResolver.Mutation.initialTaskColumnPersonal(_, {
-                        columnName: task, 
+                        columnName: task,
                         sequence: index + 1,
                     })
                     return tc._id
                 }))
                 const noteCategories = await Promise.all(personalCategories.map(async (category, index) => {
                     const nc = await noteCategoryResolver.Mutation.initialNoteCategoryPersonal(_, {
-                        categoryName: category, 
+                        categoryName: category,
                         sequence: index + 1,
                     })
                     return nc._id
@@ -177,7 +186,8 @@ const resolvers = {
                 })
                 const result = await user.save()
                 
-                if(result) {
+
+                if (result) {
                     mailer(result.email, result.name, result.verificationCode)
                 }
 
@@ -223,6 +233,37 @@ const resolvers = {
                 throw new Error(err)
             }
         },
+        editProfile: async (_, { _id, name, photo }) => {
+            console.log("editProfile");
+            try {
+                const user = await User.findById(_id)
+                if (!user) {
+                    throw new Error('Usernot found')
+                }
+                if (photo === "same") {
+                    const editedProfile = await User.findByIdAndUpdate(user._id, { $set: { name } }, { new: true })
+                    const token = jwt.sign({
+                        _id: editedProfile._id,
+                        email: editedProfile.email,
+                        name: editedProfile.name,
+                        photo: editedProfile.photo
+                    }, process.env.JWT_SECRET, { expiresIn: '10h' })
+                    return { ...editedProfile._doc, token }
+                } else {
+                    const editedProfile = await User.findByIdAndUpdate(user._id, { $set: { name, photo } }, { new: true })
+                    const token = jwt.sign({
+                        _id: editedProfile._id,
+                        email: editedProfile.email,
+                        name: editedProfile.name,
+                        photo: editedProfile.photo
+                    }, process.env.JWT_SECRET, { expiresIn: '10h' })
+                    return { ...editedProfile._doc, token }
+                }
+            }
+            catch (err) {
+                throw new Error(err)
+            }
+        },
         verifyUser: async (_, { email, code }) => {
             console.log("verifyUser");
             try {
@@ -258,10 +299,10 @@ const resolvers = {
                 user.verificationCode = verificationCode
                 const result = await user.save()
 
-                if(result) {
+                if (result) {
                     mailer(result.email, result.name, result.verificationCode)
                 }
-                
+
                 return { ...result._doc }
             }
             catch (err) {
@@ -279,10 +320,10 @@ const resolvers = {
                 user.verificationCode = verificationCode
                 const result = await user.save()
 
-                if(result) {
+                if (result) {
                     mailer(result.email, result.name, result.verificationCode)
                 }
-                
+
                 return { ...result._doc }
             }
             catch (err) {
@@ -299,7 +340,7 @@ const resolvers = {
                 if (parseInt(user.verificationCode) !== parseInt(code)) {
                     throw new Error('Wrong verification code')
                 }
-                
+
                 return { ...user._doc }
             }
             catch (err) {
@@ -317,8 +358,8 @@ const resolvers = {
 
                 user.password = hashedPassword
                 const result = await user.save()
-                
-                
+
+
                 return { ...result._doc }
             }
             catch (err) {
@@ -331,31 +372,38 @@ const resolvers = {
             try {
                 const userDetails = await User.findById(user._id)
                 const colleague = await User.findById(colleagueId)
-                if(userDetails.colleagues.includes(colleagueId)) {
+                if (userDetails.colleagues.includes(colleagueId)) {
                     throw new Error("Colleague already exists")
                 }
-                if(userDetails. myPendingInvitesRequest.includes(colleagueId)) {
+                if (userDetails.myPendingInvitesRequest.includes(colleagueId)) {
                     throw new Error("Colleague already invited")
                 }
-                if(userDetails.myPendingInvitesRespond.includes(colleagueId)) {
+                if (userDetails.myPendingInvitesRespond.includes(colleagueId)) {
                     throw new Error("Colleague already invited you, please confirm")
                 }
                 const userUpdate = await User.findByIdAndUpdate(
-                        { _id: user._id },
-                        { $set: { myPendingInvitesRequest: [ ...userDetails.myPendingInvitesRequest, colleagueId ] } },
-                        { new: true }
-                    )
-                
+                    { _id: user._id },
+                    { $set: { myPendingInvitesRequest: [...userDetails.myPendingInvitesRequest, colleagueId] } },
+                    { new: true }
+                )
+
                 const colleagueUpdate = await User.findByIdAndUpdate(
-                        { _id: colleagueId },
-                        { $set: { myPendingInvitesRespond: [ ...colleague.myPendingInvitesRespond, user._id ] } },
-                        { new: true }
-                    )
-                
-                    console.log(colleagueUpdate);
+                    { _id: colleagueId },
+                    { $set: { myPendingInvitesRespond: [...colleague.myPendingInvitesRespond, user._id] } },
+                    { new: true }
+                )
+
+                await context.pubsub.publish(SEND_INVITE, {
+                    sendInvite: {
+                        ...userUpdate._doc,
+                        colleagues: resolvers.Query.usersInfo( _, { userIds: userUpdate.colleagues } ),
+                        targetUser: colleagueId
+                    }
+                })
+
                 return {
                     ...colleagueUpdate._doc,
-                    // colleagues: resolvers.Query.usersInfo( _, { userIds: result.colleagues } ),
+                    // colleagues: resolvers.Query.usersInfo( _, { userIds: colleagueUpdate.colleagues } ),
                     // myPendingInvitesRequest: resolvers.Query.usersInfo( _, { userIds: result.myPendingInvitesRequest } ),
                     // myPendingInvitesRespond: resolvers.Query.usersInfo( _, { userIds: result.myPendingInvitesRespond } ),
                 }
@@ -371,31 +419,41 @@ const resolvers = {
                 const userDetails = await User.findById(user._id)
                 const colleague = await User.findById(colleagueId)
                 const userUpdate = await User.findByIdAndUpdate(
-                        { _id: user._id },
-                        { $set: 
-                            {
-                                myPendingInvitesRespond: userDetails.myPendingInvitesRespond.filter(id => id != colleagueId ),
-                                colleagues: [ ...userDetails.colleagues, colleagueId ]
-                            },
+                    { _id: user._id },
+                    {
+                        $set:
+                        {
+                            myPendingInvitesRespond: userDetails.myPendingInvitesRespond.filter(id => id != colleagueId),
+                            colleagues: [...userDetails.colleagues, colleagueId]
                         },
-                        
-                        { new: true }
-                    )
-                
+                    },
+
+                    { new: true }
+                )
+
                 const colleagueUpdate = await User.findByIdAndUpdate(
-                        { _id: colleagueId },
-                        { $set:
-                            {
-                                myPendingInvitesRequest: colleague.myPendingInvitesRequest.filter(id => id != user._id ),
-                                colleagues: [ ...colleague.colleagues, user._id ]
-                            }
-                        },
-                        { new: true }
-                    )
-                
+                    { _id: colleagueId },
+                    {
+                        $set:
+                        {
+                            myPendingInvitesRequest: colleague.myPendingInvitesRequest.filter(id => id != user._id),
+                            colleagues: [...colleague.colleagues, user._id]
+                        }
+                    },
+                    { new: true }
+                )
+
+                await context.pubsub.publish(ACCEPT_INVITE, {
+                    acceptInvite: {
+                        ...userDetails._doc,
+                        colleagues: resolvers.Query.usersInfo( _, { userIds: userUpdate.colleagues } ),
+                        targetUser: colleagueId
+                    }
+                })
+
                 return {
                     ...colleagueUpdate._doc,
-                    // colleagues: resolvers.Query.usersInfo( _, { userIds: result.colleagues } ),
+                    colleagues: resolvers.Query.usersInfo( _, { userIds: colleagueUpdate.colleagues } ),
                     // myPendingInvitesRequest: resolvers.Query.usersInfo( _, { userIds: result.myPendingInvitesRequest } ),
                     // myPendingInvitesRespond: resolvers.Query.usersInfo( _, { userIds: result.myPendingInvitesRespond } ),
                 }
@@ -411,26 +469,35 @@ const resolvers = {
                 const userDetails = await User.findById(user._id)
                 const colleague = await User.findById(colleagueId)
                 const userUpdate = await User.findByIdAndUpdate(
-                        { _id: user._id },
-                        { $set: 
-                            {
-                                myPendingInvitesRespond: userDetails.myPendingInvitesRespond.filter(id => id != colleagueId ),
-                            },
+                    { _id: user._id },
+                    {
+                        $set:
+                        {
+                            myPendingInvitesRespond: userDetails.myPendingInvitesRespond.filter(id => id != colleagueId),
                         },
-                        
-                        { new: true }
-                    )
-                
+                    },
+
+                    { new: true }
+                )
+
                 const colleagueUpdate = await User.findByIdAndUpdate(
-                        { _id: colleagueId },
-                        { $set:
-                            {
-                                myPendingInvitesRequest: colleague.myPendingInvitesRequest.filter(id => id != user._id ),
-                            }
-                        },
-                        { new: true }
-                    )
-                
+                    { _id: colleagueId },
+                    {
+                        $set:
+                        {
+                            myPendingInvitesRequest: colleague.myPendingInvitesRequest.filter(id => id != user._id),
+                        }
+                    },
+                    { new: true }
+                )
+
+                await context.pubsub.publish(REJECT_INVITE, {
+                    rejectInvite: {
+                        ...userDetails._doc,
+                        targetUser: colleagueId
+                    }
+                })
+
                 return {
                     ...colleagueUpdate._doc,
                 }
@@ -446,26 +513,35 @@ const resolvers = {
                 const userDetails = await User.findById(user._id)
                 const colleague = await User.findById(colleagueId)
                 const userUpdate = await User.findByIdAndUpdate(
-                        { _id: user._id },
-                        { $set: 
-                            {
-                                myPendingInvitesRequest: userDetails.myPendingInvitesRequest.filter(id => id != colleagueId ),
-                            },
+                    { _id: user._id },
+                    {
+                        $set:
+                        {
+                            myPendingInvitesRequest: userDetails.myPendingInvitesRequest.filter(id => id != colleagueId),
                         },
-                        
-                        { new: true }
-                    )
-                
+                    },
+
+                    { new: true }
+                )
+
                 const colleagueUpdate = await User.findByIdAndUpdate(
-                        { _id: colleagueId },
-                        { $set:
-                            {
-                                myPendingInvitesRespond: colleague.myPendingInvitesRespond.filter(id => id != user._id ),
-                            }
-                        },
-                        { new: true }
-                    )
-                
+                    { _id: colleagueId },
+                    {
+                        $set:
+                        {
+                            myPendingInvitesRespond: colleague.myPendingInvitesRespond.filter(id => id != user._id),
+                        }
+                    },
+                    { new: true }
+                )
+
+                await context.pubsub.publish(CANCEL_REQUEST, {
+                    cancelRequest: {
+                        ...userUpdate._doc,
+                        targetUser: colleagueId
+                    }
+                })
+
                 return {
                     ...colleagueUpdate._doc,
                 }
@@ -473,6 +549,41 @@ const resolvers = {
             catch (err) {
                 throw new Error(err)
             }
+        },
+    },
+    Subscription: {
+        sendInvite: {
+            subscribe: withFilter(
+                (_, __, { pubsub }) => pubsub.asyncIterator(SEND_INVITE),
+                (payload, variables) => {
+                    console.log(payload);
+                    return (payload.sendInvite.targetUser === variables.userId);
+                },
+            ),
+        },
+        acceptInvite: {
+            subscribe: withFilter(
+                (_, __, { pubsub }) => pubsub.asyncIterator(ACCEPT_INVITE),
+                (payload, variables) => {
+                    return (payload.acceptInvite.targetUser === variables.userId);
+                },
+            ),
+        },
+        rejectInvite: {
+            subscribe: withFilter(
+                (_, __, { pubsub }) => pubsub.asyncIterator(REJECT_INVITE),
+                (payload, variables) => {
+                    return (payload.rejectInvite.targetUser === variables.userId);
+                },
+            ),
+        },
+        cancelRequest: {
+            subscribe: withFilter(
+                (_, __, { pubsub }) => pubsub.asyncIterator(CANCEL_REQUEST),
+                (payload, variables) => {
+                    return (payload.cancelRequest.targetUser === variables.userId);
+                },
+            ),
         },
     }
 

@@ -1,4 +1,4 @@
-FROM node:14-alpine3.10
+FROM node:alpine
 
 LABEL version="1.0"
 LABEL description="Development image"
@@ -6,6 +6,8 @@ LABEL description="Development image"
 WORKDIR /app
 
 COPY ["package.json", "package-lock.json*", "npm-shrinkwrap.json*", "./"]
+
+RUN npm install -g nodemon
 
 RUN npm install && npm cache clean --force
 

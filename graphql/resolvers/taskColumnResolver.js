@@ -11,8 +11,7 @@ const MOVE_TASK_COLUMN = "MOVE_TASK_COLUMN"
 export default {
     Query: {
         taskColumnsByProject: async (_, { taskColumnIds }) => {
-            console.log("taskColumnsByProject", taskColumnIds);
-
+            console.log("taskColumnsByProject");
             try {
                 const taskColumns = await TaskColumn.find({ _id: { $in: taskColumnIds } })
                 if (!taskColumns) {
@@ -22,6 +21,25 @@ export default {
                     return {
                         ...taskColumn._doc,
                         createdBy: userResolver.Query.userInfo(_, { userId: taskColumn.createdBy }),
+                        tasks: taskResolver.Query.tasksByColumn(_, { taskIds: taskColumn.tasks })
+                    }
+                })
+            }
+            catch (err) {
+                throw new Error(err)
+            }
+        },
+        taskColumnsPersonal: async (_, { taskColumnIds }) => {
+            console.log("taskColumnsPersonal");
+
+            try {
+                const taskColumns = await TaskColumn.find({ _id: { $in: taskColumnIds } })
+                if (!taskColumns) {
+                    throw new Error(`No columns created`)
+                }
+                return taskColumns.map(taskColumn => {
+                    return {
+                        ...taskColumn._doc,
                         tasks: taskResolver.Query.tasksByColumn(_, { taskIds: taskColumn.tasks })
                     }
                 })
@@ -64,11 +82,11 @@ export default {
                 throw new Error(err)
             }
         },
-        initialTaskColumnPersonal: async (_, { columnName, sequence}) => {
+        initialTaskColumnPersonal: async (_, { columnName, sequence, createdBy }) => {
             console.log("newTaskColumnPersonal");
             try {
                 const newTaskColumn = new TaskColumn({
-                    columnName, sequence
+                    columnName, sequence, createdBy
                 })
                 const result = await newTaskColumn.save()
 
