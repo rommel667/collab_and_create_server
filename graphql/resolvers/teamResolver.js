@@ -2,7 +2,9 @@ import User from '../../models/user.js'
 import Team from '../../models/team.js'
 import checkAuth from '../../utils/checkAuth.js';
 import userResolver from './userResolver.js';
+import { withFilter } from 'graphql-subscriptions'
 
+const NEW_TEAM = "NEW_TEAM"
 
 const resolvers = {
     Query: {
@@ -79,11 +81,10 @@ const resolvers = {
         },
     },
     Mutation: {
-        createNewTeam: async (_, { teamInput: { teamName, leader, members } }, context) => {
-            console.log("createNewTeam");
+        newTeam: async (_, { teamInput: { teamName, members } }, context) => {
+            console.log("newTeam");
             const user = await checkAuth(context)
             const membersDetails = await User.find({ _id: { $in: members } })
-            const leaderDetails = await User.findById(leader)
             try {
                 const team = await Team.findOne({ teamName })
 
@@ -92,16 +93,20 @@ const resolvers = {
                 }
                 const newTeam = new Team({
                     teamName,
-                    leader,
-                    members,
+                    members: [ user._id, ...members ],
                     createdBy: user._id
                 })
                 const result = await newTeam.save()
 
-                const leaderUpdate = await User.findByIdAndUpdate({ _id: leader }, { $set: { unverifiedTeams: [ ...leaderDetails.unverifiedTeams, result._id ] } }, { new: true })
-
                 const update = membersDetails.map(async member => {
                     const membersUpdate = await User.findByIdAndUpdate({ _id: member._id }, { $set: { unverifiedTeams: [ ...member.unverifiedTeams, result._id ] } }, { new: true })
+                })
+
+                await context.pubsub.publish(NEW_TEAM, {
+                    newTeam: {
+                        ...result._doc,
+                        subscribers: [ ...members ]
+                    }
                 })
 
                 return {
@@ -146,6 +151,16 @@ const resolvers = {
             }
         },
         
+    },
+    Subscription: {
+        newTeam: {
+            subscribe: withFilter(
+                (_, __, { pubsub }) => pubsub.asyncIterator(NEW_TEAM),
+                (payload, variables) => {
+                    return (payload.newTeam.subscribers.includes(variables.userId));
+                },
+            ),
+        },
     }
 
 }

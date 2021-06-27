@@ -12,7 +12,7 @@ const MOVE_NOTE_CATEGORY = "MOVE_NOTE_CATEGORY"
 export default {
     Query: {
         noteCategoriesByProject: async (_, { noteCategoryIds }) => {
-            console.log("noteCategoriesByProject");
+            console.log("noteCategoriesByProject" );
 
             try {
                 const noteCategories = await NoteCategory.find({ _id: { $in: noteCategoryIds } })
@@ -23,6 +23,25 @@ export default {
                     return {
                         ...noteCategory._doc,
                         createdBy: userResolver.Query.userInfo(_, { userId: noteCategory.createdBy }),
+                        notes: noteResolver.Query.notesByCategory(_, { noteIds: noteCategory.notes })
+                    }
+                })
+            }
+            catch (err) {
+                throw new Error(err)
+            }
+        },
+        noteCategoriesPersonal: async (_, { noteCategoryIds }) => {
+            console.log("noteCategoriesPersonal",);
+
+            try {
+                const noteCategories = await NoteCategory.find({ _id: { $in: noteCategoryIds } })
+                if (!noteCategories) {
+                    throw new Error(`No categories created`)
+                }
+                return noteCategories.map(noteCategory => {
+                    return {
+                        ...noteCategory._doc,
                         notes: noteResolver.Query.notesByCategory(_, { noteIds: noteCategory.notes })
                     }
                 })
@@ -53,6 +72,8 @@ export default {
                         confirmedMembers: project.confirmedMembers.filter(id => id != user._id),
                     }
                 })
+
+                console.log("RESULT", result);
                 
                 return {
                     ...result._doc,
@@ -65,11 +86,11 @@ export default {
                 throw new Error(err)
             }
         },
-        initialNoteCategoryPersonal: async (_, { categoryName, sequence }) => {
+        initialNoteCategoryPersonal: async (_, { categoryName, sequence, createdBy }) => {
             console.log("newNoteCategoryPersonal");
             try {
                 const newNoteCategory = new NoteCategory({
-                    categoryName, sequence
+                    categoryName, sequence, createdBy
                 })
                 const result = await newNoteCategory.save()
                 return {

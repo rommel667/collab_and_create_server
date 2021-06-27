@@ -10,7 +10,6 @@ const typeDefs = gql`
 
     input TeamInput {
         teamName: String!
-        leader: ID!
         members: [ID]!
     }
 
@@ -50,12 +49,9 @@ const typeDefs = gql`
     type Team {
         _id: ID!
         teamName: String!
-        leader: User!
         members: [User]!
         createdBy: User!
         projects: [Project]!
-        tasks: [Task]!
-        notes: [Note]!
         createdAt: String!
         updatedAt: String!
     }
@@ -160,11 +156,13 @@ const typeDefs = gql`
         unconfirmProjectInvites: [Project]!
 
         taskColumnsByProject(taskColumnIds: [ID]!): [TaskColumn]!
+        taskColumnsPersonal(taskColumnIds: [ID]!): [TaskColumn]!
 
         tasksByProject(taskColumnIds: [ID]!): [Task!]!
         tasksByColumn(taskIds: [ID]!): [Task!]!
 
         noteCategoriesByProject(taskColumnIds: [ID]!): [NoteCategory]!
+        noteCategoriesPersonal(taskColumnIds: [ID]!): [NoteCategory]!
 
         notesByProject(noteCategoryIds: [ID]!): [Note!]!
         notesByCategory(noteIds: [ID]!): [Note!]!
@@ -174,6 +172,7 @@ const typeDefs = gql`
         login(email: String!, password: String!): User!
         registerUser(userInput: UserInput!): User!
         signInWithGoogle(name: String!, email: String!, photo: String!, token: String!): User!
+        editProfile: User!
         verifyUser(email: String!, code: String!): User!
         resendCode(email: String!): User!
         forgotPasswordEmail(email: String!): User!
@@ -185,7 +184,7 @@ const typeDefs = gql`
         cancelRequest(colleagueId: ID!): User!
         
 
-        createNewTeam(teamInput: TeamInput!): Team!
+        newTeam(teamInput: TeamInput!): Team!
         newTeamMember(memberId: String!): [User]!
 
         newProject(projectInput: ProjectInput!): Project!
@@ -210,6 +209,13 @@ const typeDefs = gql`
     }
 
     type Subscription {
+        sendInvite(userId: ID!): User!
+        cancelRequest(userId: ID!): User!
+        acceptInvite(userId: ID!): User!
+        rejectInvite(userId: ID!): User!
+
+        newTeam(userId: ID!): Team!
+
         newProject(userId: ID!): Project
 
         newTaskColumn(userId: ID!): TaskColumn!
