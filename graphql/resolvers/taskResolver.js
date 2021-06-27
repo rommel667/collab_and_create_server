@@ -53,6 +53,30 @@ const resolver = {
     },
 
     Mutation: {
+        newTaskPersonal: async (_, { description, columnId }, context) => {
+            console.log("newTaskPersonal");
+            const user = await checkAuth(context)
+
+            try {
+                const taskColumn = await TaskColumn.findById(columnId)
+
+                const newTask = new Task({
+                    description,
+                    columnId,
+                    createdBy: user._id
+                })
+
+                const result = await newTask.save()
+
+                await TaskColumn.findByIdAndUpdate(columnId, { $set: { tasks: [...taskColumn.tasks, result._id] } }, { new: true })
+                return {
+                    ...result._doc,
+                }
+            }
+            catch (err) {
+                throw new Error(err)
+            }
+        },
         newTask: async (_, { description, inCharge, columnId, projectId }, context) => {
             console.log("newTask");
             const user = await checkAuth(context)

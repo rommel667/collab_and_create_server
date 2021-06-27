@@ -17,7 +17,6 @@ const typeDefs = gql`
     input ProjectInput {
         projectName: String!
         description: String!
-        icon: String!
         techStacks: [String]!
         unconfirmMembers: [ID]!
     }
@@ -43,6 +42,7 @@ const typeDefs = gql`
         myPendingInvitesRequest: [User]!
         myPendingInvitesRespond: [User]!
         personalTaskColumns: [TaskColumn]!
+        personalNoteCategories: [NoteCategory]!
         createdAt: String!
         updatedAt: String!
     }
@@ -65,14 +65,13 @@ const typeDefs = gql`
         projectName: String!
         description: String!
         status: String!
-        icon: String!
         techStacks: [String]!
         createdBy: User!
         unconfirmMembers: [User]!
         confirmedMembers: [User]!
         rejectedInviteMembers: [User]!
         taskColumns: [TaskColumn]!
-        notes: [Note]!
+        noteCategories: [NoteCategory]!
         createdAt: String!
         updatedAt: String!
     }
@@ -101,11 +100,11 @@ const typeDefs = gql`
         inCharge: [User]
         createdAt: String!
         updatedAt: String!
-        projectId: ID!
+        projectId: ID
         columnId: ID!
     }
 
-    type UpdateMessage {
+    type MoveTaskUpdate {
         message: String!
         sourceColumnId: ID
         destinationColumnId: ID
@@ -113,10 +112,31 @@ const typeDefs = gql`
         projectId: ID
     }
 
+    type MoveNoteUpdate {
+        message: String!
+        sourceCategoryId: ID
+        destinationCategoryId: ID
+        noteId: ID
+        projectId: ID
+    }
+
+    type NoteCategory {
+        _id: ID!
+        categoryName: String!
+        sequence: Int!
+        createdBy: User
+        notes: [Note]!
+        projectId: ID!
+        createdAt: String!
+        updatedAt: String!
+    }
+
     type Note {
         _id: ID!
         description: String!
         createdBy: User!
+        projectId: ID
+        categoryId: ID!
         createdAt: String!
         updatedAt: String!
     }
@@ -144,7 +164,10 @@ const typeDefs = gql`
         tasksByProject(taskColumnIds: [ID]!): [Task!]!
         tasksByColumn(taskIds: [ID]!): [Task!]!
 
-        notesByProject(projectId: String!): [Note!]!
+        noteCategoriesByProject(taskColumnIds: [ID]!): [NoteCategory]!
+
+        notesByProject(noteCategoryIds: [ID]!): [Note!]!
+        notesByCategory(noteIds: [ID]!): [Note!]!
     }
 
     type Mutation {
@@ -170,22 +193,36 @@ const typeDefs = gql`
         rejectProjectInvite(projectId: ID!): Project!
 
         newTaskColumn(columnName: String!, projectId: ID!): TaskColumn!
-        newTaskColumnPersonal(columnName: String!, sequence: Int, projectId: ID!): TaskColumn!
+        initialTaskColumnPersonal(columnName: String!, sequence: Int): TaskColumn!
         moveTaskColumn(taskColumnIds: [ID]!, projectId: ID!): NewSequence! 
 
         newTask(description: String!, inCharge: [ID], columnId: ID! projectId: ID!): Task!
-        moveTask(sourceColumnId: ID! destinationColumnId: ID! taskId: ID! projectId: ID!): UpdateMessage!
+        newTaskPersonal(description: String!, columnId: ID!): Task!
+        moveTask(sourceColumnId: ID! destinationColumnId: ID! taskId: ID! projectId: ID!): MoveTaskUpdate!
 
-        newNote(description: String!, projectId: ID): Note!
+        newNoteCategory(categoryName: String!, projectId: ID!): NoteCategory!
+        initialNoteCategoryPersonal(categoryName: String!, sequence: Int): NoteCategory!
+        moveNoteCategory(noteCategoryIds: [ID]!, projectId: ID!): NewSequence! 
+
+        newNote(description: String!, categoryId: ID! projectId: ID!): Note!
+        newNotePersonal(description: String!, categoryId: ID!): Note!
+        moveNote(sourceCategoryId: ID! destinationCategoryId: ID! noteId: ID! projectId: ID!): MoveNoteUpdate!
     }
 
     type Subscription {
         newProject(userId: ID!): Project
 
-        newTask(userId: ID!): Task
-        moveTask(userId: ID!): UpdateMessage!
-
+        newTaskColumn(userId: ID!): TaskColumn!
         moveTaskColumn(userId: ID!): NewSequence
+
+        newTask(userId: ID!): Task
+        moveTask(userId: ID!): MoveTaskUpdate!
+
+        newNoteCategory(userId: ID!): NoteCategory!
+        moveNoteCategory(userId: ID!): NewSequence
+
+        newNote(userId: ID!): Note
+        moveNote(userId: ID!): MoveNoteUpdate!
     }
 
     

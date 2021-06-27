@@ -4,6 +4,7 @@ import taskResolver from './taskResolver.js'
 import noteResolver from './noteResolver.js'
 import teamResolver from './teamResolver.js'
 import taskColumnResolver from './taskColumnResolver.js'
+import noteCategoryResolver from './noteCategoryResolver.js'
 
 const resolvers = {
     Query: {
@@ -11,6 +12,7 @@ const resolvers = {
         ...projectResolver.Query,
         ...taskColumnResolver.Query,
         ...taskResolver.Query,
+        ...noteCategoryResolver.Query,
         ...noteResolver.Query,
         ...teamResolver.Query,
     },
@@ -19,13 +21,16 @@ const resolvers = {
         ...projectResolver.Mutation,
         ...taskColumnResolver.Mutation,
         ...taskResolver.Mutation,
+        ...noteCategoryResolver.Mutation,
         ...noteResolver.Mutation,
         ...teamResolver.Mutation,
     },
     Subscription: {
         ...projectResolver.Subscription,
-        ...taskResolver.Subscription,
         ...taskColumnResolver.Subscription,
+        ...taskResolver.Subscription,
+        ...noteCategoryResolver.Subscription,
+        ...noteResolver.Subscription,
     }
    
 }

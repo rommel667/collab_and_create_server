@@ -34,15 +34,16 @@ server.installSubscriptionHandlers(httpServer)
 
 
 mongoose.connect(process.env.MONGO_URI, {
+    dbName: process.env.DB_NAME,
     useNewUrlParser: true,
     useCreateIndex: true,
     useUnifiedTopology: true,
     useFindAndModify: false
 })
     .then(() => {
-        console.log("Connected to MongoDB");
+        console.log(`MongoDB Connected`);
         return httpServer.listen(process.env.PORT)
     })
-    .then(res => {
+    .then((res) => {
         console.log(`GraphQL Server running at http://localhost:${process.env.PORT}${server.graphqlPath}`);
     })

@@ -5,6 +5,7 @@ import taskResolver from './taskResolver.js'
 import userResolver from './userResolver.js'
 import { withFilter } from 'graphql-subscriptions'
 
+const NEW_TASK_COLUMN = "NEW_TASK_COLUMN"
 const MOVE_TASK_COLUMN = "MOVE_TASK_COLUMN"
 
 export default {
@@ -43,6 +44,15 @@ export default {
                 })
                 const result = await newTaskColumn.save()
                 const projectTaskColumnUpdate = await Project.findByIdAndUpdate({ _id: projectId }, { $set: { taskColumns: [...project.taskColumns, result._id] } }, { new: true })
+                
+                await context.pubsub.publish(NEW_TASK_COLUMN, {
+                    newTaskColumn: {
+                        ...result._doc,
+                        createdBy: user,
+                        confirmedMembers: project.confirmedMembers.filter(id => id != user._id),
+                    }
+                })
+                
                 return {
                     ...result._doc,
                     createdBy: userResolver.Query.userInfo(_, { userId: result.createdBy }),
@@ -54,13 +64,14 @@ export default {
                 throw new Error(err)
             }
         },
-        newTaskColumnPersonal: async (_, { columnName, sequence, createdBy }) => {
+        initialTaskColumnPersonal: async (_, { columnName, sequence}) => {
             console.log("newTaskColumnPersonal");
             try {
                 const newTaskColumn = new TaskColumn({
-                    columnName, sequence, createdBy
+                    columnName, sequence
                 })
                 const result = await newTaskColumn.save()
+
                 return {
                     ...result._doc,
                 }
@@ -102,6 +113,16 @@ export default {
 
     },
     Subscription: {
+        newTaskColumn: {
+            subscribe: withFilter(
+                (_, __, { pubsub }) => pubsub.asyncIterator(NEW_TASK_COLUMN),
+                (payload, variables) => {
+                    console.log("PAYLOAD", payload);
+                    console.log("VARIABLES", variables);
+                    return (payload.newTaskColumn.confirmedMembers.includes(variables.userId));
+                },
+            ),
+        },
         moveTaskColumn: {
             subscribe: withFilter(
                 (_, __, { pubsub }) => pubsub.asyncIterator(MOVE_TASK_COLUMN),

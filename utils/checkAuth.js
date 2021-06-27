@@ -2,26 +2,6 @@ import jwt from 'jsonwebtoken'
 import googleAuth from 'google-auth-library'
 const { OAuth2Client } = googleAuth
 
-
-// const checkAuth = async (context) => {
-//     const authHeader = context.req.headers.authorization
-//     console.log("CHECKAUTH");
-//     if (authHeader) {
-//         const token = authHeader.split('Bearer ')[1]
-//         if (token) {
-//             const user = jwt.verify(token, process.env.JWT_SECRET)
-//                 if (user) {
-//                     return user   
-//                 } else {
-//                     throw new Error('Invalid/Expired Token')
-//                 }  
-//         }
-//         throw new Error('Authentication Token Fail')
-//     }
-//     throw new Error('Authorization Header Fail')
-// }
-
-
 const checkAuth = async (context) => {
     const authHeader = context.req.headers.authorization
     console.log("CHECKAUTH");

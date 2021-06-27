@@ -13,10 +13,6 @@ const projectSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    icon: {
-        type: String,
-        required: true
-    },
     techStacks: [
         {
             type: String,
@@ -51,12 +47,12 @@ const projectSchema = new mongoose.Schema({
             ref: 'TaskColumn'
         }
     ],
-    notes: [
+    noteCategories: [
         {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'Note'
+            ref: 'NoteCategory'
         }
-    ]
+    ],
 
 }, { timestamps: true })
 

@@ -3,6 +3,7 @@ import User from '../../models/user.js'
 import checkAuth from '../../utils/checkAuth.js'
 import userResolver from './userResolver.js'
 import taskColumnResolver from './taskColumnResolver.js'
+import noteCategoryResolver from './noteCategoryResolver.js'
 import { withFilter } from 'graphql-subscriptions'
 
 
@@ -27,7 +28,8 @@ export default {
                         unconfirmMembers: userResolver.Query.usersInfo(_, { userIds: project.unconfirmMembers }),
                         createdAt: project.createdAt.toISOString(),
                         updatedAt: project.updatedAt.toISOString(),
-                        taskColumns: taskColumnResolver.Query.taskColumnsByProject(_, { taskColumnIds: project.taskColumns })
+                        taskColumns: taskColumnResolver.Query.taskColumnsByProject(_, { taskColumnIds: project.taskColumns }),
+                        noteCategories: noteCategoryResolver.Query.noteCategoriesByProject(_, { noteCategoryIds: project.noteCategories })
                     }
                 })
             }
@@ -51,7 +53,8 @@ export default {
                     unconfirmMembers: userResolver.Query.usersInfo(_, { userIds: project.unconfirmMembers }),
                     createdAt: project.createdAt.toISOString(),
                     updatedAt: project.updatedAt.toISOString(),
-                    taskColumns: taskColumnResolver.Query.taskColumnsByProject(_, { taskColumnIds: project.taskColumns })
+                    taskColumns: taskColumnResolver.Query.taskColumnsByProject(_, { taskColumnIds: project.taskColumns }),
+                    noteCategories: noteCategoryResolver.Query.noteCategoriesByProject(_, { noteCategoryIds: project.noteCategories })
                 }
 
             }
@@ -86,12 +89,12 @@ export default {
     },
 
     Mutation: {
-        newProject: async (_, { projectInput: { projectName, description, icon, techStacks, unconfirmMembers } }, context) => {
+        newProject: async (_, { projectInput: { projectName, description, techStacks, unconfirmMembers } }, context) => {
             console.log("newProject");
             const user = await checkAuth(context)
             try {
                 const newProject = new Project({
-                    projectName, description, icon, status: "Ongoing",
+                    projectName, description, status: "Ongoing",
                     techStacks, createdBy: user._id,
                     confirmedMembers: [user._id],
                     unconfirmMembers
