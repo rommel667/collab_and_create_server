@@ -23,7 +23,6 @@ const resolvers = {
                     return {
                         ...team._doc,
                         createdBy: userResolver.Query.userInfo(_, { userId: team.createdBy }),
-                        leader: resolvers.Query.leader(_, { userId: team.leader }),
                         members: resolvers.Query.members(_, { userIds: team.members })
                     }
                 })
@@ -47,20 +46,9 @@ const resolvers = {
                     return {
                         ...team._doc,
                         createdBy: userResolver.Query.userInfo(_, { userId: team.createdBy }),
-                        leader: resolvers.Query.leader(_, { userId: team.leader }),
                         members: resolvers.Query.members(_, { userIds: team.members })
                     }
                 })
-            }
-            catch (err) {
-                throw new Error(err)
-            }
-        },
-        leader: async (_, { userId }) => {
-            console.log("leader");
-            try {
-                const leader = await User.findById(userId)
-                return { ...leader._doc }
             }
             catch (err) {
                 throw new Error(err)
@@ -81,9 +69,10 @@ const resolvers = {
         },
     },
     Mutation: {
-        newTeam: async (_, { teamInput: { teamName, members } }, context) => {
+        newTeam: async (_, { teamName, members }, context) => {
             console.log("newTeam");
             const user = await checkAuth(context)
+            const userDetails = await User.findById(user._id)
             const membersDetails = await User.find({ _id: { $in: members } })
             try {
                 const team = await Team.findOne({ teamName })
@@ -97,6 +86,8 @@ const resolvers = {
                     createdBy: user._id
                 })
                 const result = await newTeam.save()
+
+                const creatorUpdate = await User.findByIdAndUpdate({ _id: user._id }, { $set: { verifiedTeams: [ userDetails.verifiedTeams, result._id ] } }, { new: true })
 
                 const update = membersDetails.map(async member => {
                     const membersUpdate = await User.findByIdAndUpdate({ _id: member._id }, { $set: { unverifiedTeams: [ ...member.unverifiedTeams, result._id ] } }, { new: true })
@@ -112,7 +103,6 @@ const resolvers = {
                 return {
                     ...result._doc,
                     createdBy: userResolver.Query.userInfo(_, { userId: result.createdBy }),
-                    leader: resolvers.Query.leader(_, { userId: result.leader }),
                     members: resolvers.Query.members(_, { userIds: result.members })
                 }
             }
@@ -142,7 +132,6 @@ const resolvers = {
                 return {
                     ...result._doc,
                     createdBy: userResolver.Query.userInfo(_, { userId: result.createdBy }),
-                    leader: resolvers.Query.leader(_, { userId: result.leader }),
                     members: resolvers.Query.members(_, { userIds: result.members })
                 }
             }

@@ -23,7 +23,6 @@ const resolvers = {
                 const myInfo = await User.findById(user._id)
                 return {
                     ...myInfo._doc,
-                    password: "password",
                     createdAt: new Date(myInfo.createdAt).toISOString(),
                     colleagues: resolvers.Query.usersInfo(_, { userIds: myInfo.colleagues }),
                     verifiedTeams: teamResolver.Query.verifiedTeams(_, __, context),
@@ -179,13 +178,15 @@ const resolvers = {
                     email: email,
                     password: hashedPassword,
                     photo: "https://res.cloudinary.com/rommel/image/upload/v1601204560/tk58aebfctjwz7t74qya.jpg",
+                    skills: [],
+                    portfolio: "",
                     verified: false,
                     verificationCode: verificationCode,
                     personalTaskColumns: taskColumns,
                     personalNoteCategories: noteCategories
                 })
                 const result = await user.save()
-                
+
 
                 if (result) {
                     mailer(result.email, result.name, result.verificationCode)
@@ -207,6 +208,8 @@ const resolvers = {
                         name: name,
                         email: email,
                         photo: photo,
+                        skills: [],
+                        portfolio: "",
                         password: hashedPassword,
                         verificationCode: 1,
                         verified: true
@@ -233,32 +236,13 @@ const resolvers = {
                 throw new Error(err)
             }
         },
-        editProfile: async (_, { _id, name, photo }) => {
+        editProfile: async (_, { name, photo, skills, portfolio }, context) => {
             console.log("editProfile");
+            const user = await checkAuth(context)
             try {
-                const user = await User.findById(_id)
-                if (!user) {
-                    throw new Error('Usernot found')
-                }
-                if (photo === "same") {
-                    const editedProfile = await User.findByIdAndUpdate(user._id, { $set: { name } }, { new: true })
-                    const token = jwt.sign({
-                        _id: editedProfile._id,
-                        email: editedProfile.email,
-                        name: editedProfile.name,
-                        photo: editedProfile.photo
-                    }, process.env.JWT_SECRET, { expiresIn: '10h' })
-                    return { ...editedProfile._doc, token }
-                } else {
-                    const editedProfile = await User.findByIdAndUpdate(user._id, { $set: { name, photo } }, { new: true })
-                    const token = jwt.sign({
-                        _id: editedProfile._id,
-                        email: editedProfile.email,
-                        name: editedProfile.name,
-                        photo: editedProfile.photo
-                    }, process.env.JWT_SECRET, { expiresIn: '10h' })
-                    return { ...editedProfile._doc, token }
-                }
+                const editedProfile = await User.findByIdAndUpdate(user._id, { $set: { name, photo, skills, portfolio } }, { new: true })
+
+                return { ...editedProfile._doc }
             }
             catch (err) {
                 throw new Error(err)
@@ -396,7 +380,7 @@ const resolvers = {
                 await context.pubsub.publish(SEND_INVITE, {
                     sendInvite: {
                         ...userUpdate._doc,
-                        colleagues: resolvers.Query.usersInfo( _, { userIds: userUpdate.colleagues } ),
+                        colleagues: resolvers.Query.usersInfo(_, { userIds: userUpdate.colleagues }),
                         targetUser: colleagueId
                     }
                 })
@@ -446,14 +430,14 @@ const resolvers = {
                 await context.pubsub.publish(ACCEPT_INVITE, {
                     acceptInvite: {
                         ...userDetails._doc,
-                        colleagues: resolvers.Query.usersInfo( _, { userIds: userUpdate.colleagues } ),
+                        colleagues: resolvers.Query.usersInfo(_, { userIds: userUpdate.colleagues }),
                         targetUser: colleagueId
                     }
                 })
 
                 return {
                     ...colleagueUpdate._doc,
-                    colleagues: resolvers.Query.usersInfo( _, { userIds: colleagueUpdate.colleagues } ),
+                    colleagues: resolvers.Query.usersInfo(_, { userIds: colleagueUpdate.colleagues }),
                     // myPendingInvitesRequest: resolvers.Query.usersInfo( _, { userIds: result.myPendingInvitesRequest } ),
                     // myPendingInvitesRespond: resolvers.Query.usersInfo( _, { userIds: result.myPendingInvitesRespond } ),
                 }

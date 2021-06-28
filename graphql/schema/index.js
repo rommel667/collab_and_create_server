@@ -8,10 +8,6 @@ const typeDefs = gql`
         password: String!
     }
 
-    input TeamInput {
-        teamName: String!
-        members: [ID]!
-    }
 
     input ProjectInput {
         projectName: String!
@@ -33,6 +29,8 @@ const typeDefs = gql`
         email: String!
         password: String!
         photo: String
+        skills: [String]
+        portfolio: String
         token: String
         verified: Boolean!
         colleagues: [User]!
@@ -172,7 +170,7 @@ const typeDefs = gql`
         login(email: String!, password: String!): User!
         registerUser(userInput: UserInput!): User!
         signInWithGoogle(name: String!, email: String!, photo: String!, token: String!): User!
-        editProfile: User!
+        editProfile(name: String, photo: String, skills: [String], portfolio: String): User!
         verifyUser(email: String!, code: String!): User!
         resendCode(email: String!): User!
         forgotPasswordEmail(email: String!): User!
@@ -184,7 +182,7 @@ const typeDefs = gql`
         cancelRequest(colleagueId: ID!): User!
         
 
-        newTeam(teamInput: TeamInput!): Team!
+        newTeam(teamName: String! members: [ID]!): Team!
         newTeamMember(memberId: String!): [User]!
 
         newProject(projectInput: ProjectInput!): Project!
