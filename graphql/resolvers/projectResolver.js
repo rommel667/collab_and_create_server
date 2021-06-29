@@ -62,6 +62,32 @@ export default {
                 throw new Error(err)
             }
         },
+        projectsInfo: async (_, { projectIds }) => {
+            console.log("projectsInfo");
+            
+            try {
+                const projects = await Project.find({ _id: { $in: projectIds } })
+                if (!projects) {
+                    throw new Error(`Project not found`)
+                }
+
+                return projects.map(project => {
+                    return {
+                        ...project._doc,
+                        // createdBy: userResolver.Query.userInfo(_, { userId: project.createdBy }),
+                        // confirmedMembers: userResolver.Query.usersInfo(_, { userIds: project.confirmedMembers }),
+                        // unconfirmMembers: userResolver.Query.usersInfo(_, { userIds: project.unconfirmMembers }),
+                        // createdAt: project.createdAt.toISOString(),
+                        // updatedAt: project.updatedAt.toISOString(),
+                        // taskColumns: taskColumnResolver.Query.taskColumnsByProject(_, { taskColumnIds: project.taskColumns }),
+                        // noteCategories: noteCategoryResolver.Query.noteCategoriesByProject(_, { noteCategoryIds: project.noteCategories })
+                    }
+                })
+            }
+            catch (err) {
+                throw new Error(err)
+            }
+        },
         unconfirmProjectInvites: async (_, __, context) => {
             console.log("projects");
             const user = await checkAuth(context)

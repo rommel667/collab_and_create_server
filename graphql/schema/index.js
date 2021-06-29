@@ -53,6 +53,10 @@ const typeDefs = gql`
         createdAt: String!
         updatedAt: String!
     }
+    type TeamInviteResponse {
+        user: User
+        teamId: ID!
+    }
 
     type Project {
         _id: ID!
@@ -146,11 +150,10 @@ const typeDefs = gql`
 
         verifiedTeams: [Team]!
         unverifiedTeams: [Team]!
-        leader: User!
-        members: [User]!
 
         projectsByUser: [Project]!
         projectInfo(projectId: ID!): Project!
+        projectsInfo(projectIds: [ID]!): [Project]!
         unconfirmProjectInvites: [Project]!
 
         taskColumnsByProject(taskColumnIds: [ID]!): [TaskColumn]!
@@ -183,6 +186,7 @@ const typeDefs = gql`
         
 
         newTeam(teamName: String! members: [ID]!): Team!
+        acceptTeamInvite(teamId: ID!): TeamInviteResponse!
         newTeamMember(memberId: String!): [User]!
 
         newProject(projectInput: ProjectInput!): Project!
@@ -213,6 +217,7 @@ const typeDefs = gql`
         rejectInvite(userId: ID!): User!
 
         newTeam(userId: ID!): Team!
+        acceptTeamInvite(userId: ID!): TeamInviteResponse!
 
         newProject(userId: ID!): Project
 

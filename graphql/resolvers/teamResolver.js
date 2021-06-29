@@ -2,9 +2,11 @@ import User from '../../models/user.js'
 import Team from '../../models/team.js'
 import checkAuth from '../../utils/checkAuth.js';
 import userResolver from './userResolver.js';
+import projectResolver from './projectResolver.js'
 import { withFilter } from 'graphql-subscriptions'
 
 const NEW_TEAM = "NEW_TEAM"
+const ACCEPT_TEAM_INVITE = "ACCEPT_TEAM_INVITE"
 
 const resolvers = {
     Query: {
@@ -13,7 +15,7 @@ const resolvers = {
             const user = await checkAuth(context)
             try {
                 const userDetails = await User.findById(user._id)
-
+                
                 const verifiedTeams = await Team.find({ _id: { $in: userDetails.verifiedTeams } })
 
                 if (!verifiedTeams) {
@@ -23,7 +25,8 @@ const resolvers = {
                     return {
                         ...team._doc,
                         createdBy: userResolver.Query.userInfo(_, { userId: team.createdBy }),
-                        members: resolvers.Query.members(_, { userIds: team.members })
+                        members: userResolver.Query.usersInfo(_, { userIds: team.members }),
+                        projects: projectResolver.Query.projectsInfo(_, { projectIds: team.projects })
                     }
                 })
             }
@@ -46,21 +49,8 @@ const resolvers = {
                     return {
                         ...team._doc,
                         createdBy: userResolver.Query.userInfo(_, { userId: team.createdBy }),
-                        members: resolvers.Query.members(_, { userIds: team.members })
+                        members: userResolver.Query.usersInfo(_, { userIds: team.members })
                     }
-                })
-            }
-            catch (err) {
-                throw new Error(err)
-            }
-        },
-        members: async (_, { userIds }) => {
-            console.log("members");
-
-            try {
-                const members = await User.find({ _id: { $in: userIds } })
-                return members.map(member => {
-                    return { ...member._doc }
                 })
             }
             catch (err) {
@@ -70,7 +60,7 @@ const resolvers = {
     },
     Mutation: {
         newTeam: async (_, { teamName, members }, context) => {
-            console.log("newTeam");
+            console.log("newTeam", teamName, members);
             const user = await checkAuth(context)
             const userDetails = await User.findById(user._id)
             const membersDetails = await User.find({ _id: { $in: members } })
@@ -82,28 +72,70 @@ const resolvers = {
                 }
                 const newTeam = new Team({
                     teamName,
-                    members: [ user._id, ...members ],
+                    members: [user._id, ...members],
                     createdBy: user._id
                 })
                 const result = await newTeam.save()
 
-                const creatorUpdate = await User.findByIdAndUpdate({ _id: user._id }, { $set: { verifiedTeams: [ userDetails.verifiedTeams, result._id ] } }, { new: true })
+                const creatorUpdate = await User.findByIdAndUpdate({ _id: user._id }, { $set: { verifiedTeams: [...userDetails.verifiedTeams, result._id] } }, { new: true })
 
                 const update = membersDetails.map(async member => {
-                    const membersUpdate = await User.findByIdAndUpdate({ _id: member._id }, { $set: { unverifiedTeams: [ ...member.unverifiedTeams, result._id ] } }, { new: true })
+                    const membersUpdate = await User.findByIdAndUpdate({ _id: member._id }, { $set: { unverifiedTeams: [...member.unverifiedTeams, result._id] } }, { new: true })
                 })
 
                 await context.pubsub.publish(NEW_TEAM, {
                     newTeam: {
                         ...result._doc,
-                        subscribers: [ ...members ]
+                        createdBy: userResolver.Query.userInfo(_, { userId: result.createdBy }),
+                        members: userResolver.Query.usersInfo(_, { userIds: result.members }),
+                        subscribers: [...members]
                     }
                 })
 
                 return {
                     ...result._doc,
                     createdBy: userResolver.Query.userInfo(_, { userId: result.createdBy }),
-                    members: resolvers.Query.members(_, { userIds: result.members })
+                    members: userResolver.Query.usersInfo(_, { userIds: result.members })
+                }
+            }
+            catch (err) {
+                throw new Error(err)
+            }
+        },
+        acceptTeamInvite: async (_, { teamId }, context) => {
+            console.log("acceptTeamInvite");
+            const user = await checkAuth(context)
+            const userDetails = await User.findById(user._id)
+           
+            try {
+                const team = await Team.findById(teamId)
+
+                if (!team) {
+                    throw new Error("Team not found.")
+                }
+
+
+                const userUpdate = await User.findByIdAndUpdate(
+                    { _id: user._id },
+                    {
+                        $set: {
+                            verifiedTeams: [...userDetails.verifiedTeams, teamId],
+                            unverifiedTeams: [ ...userDetails.unverifiedTeams.filter(team => team != teamId) ]
+                        }
+                    }, { new: true }
+                )
+
+                await context.pubsub.publish(ACCEPT_TEAM_INVITE, {
+                    acceptTeamInvite: {
+                        ...userUpdate._doc,
+                        teamId,
+                        subscribers: [ ...team.members.filter(member => member !== user._id) ],
+                    }
+                })
+
+                return {
+                    ...userUpdate._doc,
+                    teamId,
                 }
             }
             catch (err) {
@@ -112,7 +144,7 @@ const resolvers = {
         },
         newTeamMember: async (_, { teamId, newMemberId }, context) => {
             console.log("newTeamMember");
-           
+
             try {
                 const team = await Team.findById(teamId)
                 if (!team) {
@@ -121,8 +153,8 @@ const resolvers = {
                 if (team.members.includes(newMemberId)) {
                     throw new Error("Already a member of the team")
                 }
-                
-                const result = await Team.findByIdAndUpdate({ _id: teamId }, { $set: { members: [ ...team.members, newMemberId ] } }, { new: true })
+
+                const result = await Team.findByIdAndUpdate({ _id: teamId }, { $set: { members: [...team.members, newMemberId] } }, { new: true })
 
 
                 if (!result) {
@@ -132,14 +164,14 @@ const resolvers = {
                 return {
                     ...result._doc,
                     createdBy: userResolver.Query.userInfo(_, { userId: result.createdBy }),
-                    members: resolvers.Query.members(_, { userIds: result.members })
+                    members: userResolver.Query.usersInfo(_, { userIds: result.members })
                 }
             }
             catch (err) {
                 throw new Error(err)
             }
         },
-        
+
     },
     Subscription: {
         newTeam: {
@@ -147,6 +179,14 @@ const resolvers = {
                 (_, __, { pubsub }) => pubsub.asyncIterator(NEW_TEAM),
                 (payload, variables) => {
                     return (payload.newTeam.subscribers.includes(variables.userId));
+                },
+            ),
+        },
+        acceptTeamInvite: {
+            subscribe: withFilter(
+                (_, __, { pubsub }) => pubsub.asyncIterator(ACCEPT_TEAM_INVITE),
+                (payload, variables) => {
+                    return (payload.acceptTeamInvite.subscribers.includes(variables.userId));
                 },
             ),
         },
