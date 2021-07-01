@@ -21,12 +21,12 @@
     "express": "^4.17.1",
     "google-auth-library": "^7.1.2",
     "graphql": "^15.5.0",
+    "graphql-redis-subscriptions": "^2.4.0",
+    "ioredis": "^4.27.6",
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.12.10",
     "nodemailer": "^6.6.1",
     "pug": "^3.0.2"
   },
-  "devDependencies": {
-    
-  }
+  "devDependencies": {}
 }

@@ -2,18 +2,29 @@ import dotenv from 'dotenv'
 dotenv.config()
 import express from 'express'
 import apolloServer from 'apollo-server-express'
-const { ApolloServer, PubSub } = apolloServer;
+const { ApolloServer } = apolloServer;
 import mongoose from 'mongoose'
 import typeDefs from './graphql/schema/index.js'
 import resolvers from './graphql/resolvers/index.js'
 import { createServer } from 'http'
 import cors from 'cors'
-
-export const pubsub = new PubSub()
+import { RedisPubSub } from 'graphql-redis-subscriptions'
+import Redis from 'ioredis';
 
 const app = express()
 
 app.use(cors())
+
+const options = {
+    host: process.env.REDIS_HOST,
+    port: Number(process.env.REDIS_PORT),
+    password: process.env.REDIS_PASSWORD,
+  };
+
+  const pubsub = new RedisPubSub({
+    publisher: new Redis(options),
+    subscriber: new Redis(options)
+  });
 
 const server = new ApolloServer({
     typeDefs: typeDefs,
