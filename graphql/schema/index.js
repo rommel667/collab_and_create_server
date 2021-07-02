@@ -54,7 +54,7 @@ const typeDefs = gql`
         updatedAt: String!
     }
     type TeamInviteResponse {
-        user: User
+        user: User!
         teamId: ID!
     }
 
@@ -187,6 +187,7 @@ const typeDefs = gql`
 
         newTeam(teamName: String! members: [ID]!): Team!
         acceptTeamInvite(teamId: ID!): TeamInviteResponse!
+        rejectTeamInvite(teamId: ID!): TeamInviteResponse!
         newTeamMember(memberId: String!): [User]!
 
         newProject(projectInput: ProjectInput!): Project!
@@ -218,6 +219,7 @@ const typeDefs = gql`
 
         newTeam(userId: ID!): Team!
         acceptTeamInvite(userId: ID!): TeamInviteResponse!
+        rejectTeamInvite(userId: ID!): TeamInviteResponse!
 
         newProject(userId: ID!): Project
 

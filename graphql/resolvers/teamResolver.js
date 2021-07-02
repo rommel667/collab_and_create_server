@@ -7,6 +7,7 @@ import { withFilter } from 'graphql-subscriptions'
 
 const NEW_TEAM = "NEW_TEAM"
 const ACCEPT_TEAM_INVITE = "ACCEPT_TEAM_INVITE"
+const REJECT_TEAM_INVITE = "REJECT_TEAM_INVITE"
 
 const resolvers = {
     Query: {
@@ -110,10 +111,11 @@ const resolvers = {
             try {
                 const team = await Team.findById(teamId)
 
+                const members = team.members.map(m => m.toString())
+
                 if (!team) {
                     throw new Error("Team not found.")
                 }
-
 
                 const userUpdate = await User.findByIdAndUpdate(
                     { _id: user._id },
@@ -127,6 +129,42 @@ const resolvers = {
 
                 await context.pubsub.publish(ACCEPT_TEAM_INVITE, {
                     acceptTeamInvite: {
+                        user: { ...userUpdate._doc } ,
+                        teamId,
+                        subscribers: [ ...members.filter(member => member !== user._id) ],
+                    }
+                })
+                return {
+                    user: userUpdate,
+                    teamId,
+                }
+            }
+            catch (err) {
+                throw new Error(err)
+            }
+        },
+        rejectTeamInvite: async (_, { teamId }, context) => {
+            console.log("rejectTeamInvite");
+            const user = await checkAuth(context)
+            const userDetails = await User.findById(user._id)
+           
+            try {
+                const team = await Team.findById(teamId)
+
+                if (!team) {
+                    throw new Error("Team not found.")
+                }
+                const userUpdate = await User.findByIdAndUpdate(
+                    { _id: user._id },
+                    {
+                        $set: {
+                            unverifiedTeams: [ ...userDetails.unverifiedTeams.filter(team => team != teamId) ]
+                        }
+                    }, { new: true }
+                )
+
+                await context.pubsub.publish(REJECT_TEAM_INVITE, {
+                    rejectTeamInvite: {
                         ...userUpdate._doc,
                         teamId,
                         subscribers: [ ...team.members.filter(member => member !== user._id) ],
@@ -178,6 +216,7 @@ const resolvers = {
             subscribe: withFilter(
                 (_, __, { pubsub }) => pubsub.asyncIterator(NEW_TEAM),
                 (payload, variables) => {
+                    console.log("NEW TEAM SUBSCRIPTION");
                     return (payload.newTeam.subscribers.includes(variables.userId));
                 },
             ),
@@ -186,7 +225,16 @@ const resolvers = {
             subscribe: withFilter(
                 (_, __, { pubsub }) => pubsub.asyncIterator(ACCEPT_TEAM_INVITE),
                 (payload, variables) => {
+                    console.log("ACCEPT TEAM INVITE", payload, variables);
                     return (payload.acceptTeamInvite.subscribers.includes(variables.userId));
+                },
+            ),
+        },
+        rejectTeamInvite: {
+            subscribe: withFilter(
+                (_, __, { pubsub }) => pubsub.asyncIterator(REJECT_TEAM_INVITE),
+                (payload, variables) => {
+                    return (payload.rejectTeamInvite.subscribers.includes(variables.userId));
                 },
             ),
         },

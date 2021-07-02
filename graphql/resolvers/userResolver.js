@@ -24,8 +24,8 @@ const resolvers = {
                 return {
                     ...myInfo._doc,
                     createdAt: new Date(myInfo.createdAt).toISOString(),
-                    colleagues: resolvers.Query.usersInfo(_, { userIds: myInfo.colleagues }),
-                    verifiedTeams: teamResolver.Query.verifiedTeams(_, __, context),
+                    // colleagues: resolvers.Query.usersInfo(_, { userIds: myInfo.colleagues }),
+                    // verifiedTeams: teamResolver.Query.verifiedTeams(_, __, context),
                     personalTaskColumns: taskColumnResolver.Query.taskColumnsPersonal(_, { taskColumnIds: myInfo.personalTaskColumns }),
                     personalNoteCategories: noteCategoryResolver.Query.noteCategoriesPersonal(_, { noteCategoryIds: myInfo.personalNoteCategories }),
                     // myPendingInvitesRequest: resolvers.Query.usersInfo(_, { userIds: myInfo.myPendingInvitesRequest }),
@@ -40,7 +40,10 @@ const resolvers = {
             console.log("userInfo", userId);
             try {
                 const user = await User.findById(userId)
-                return { ...user._doc, password: " " }
+                return {
+                    ...user._doc,
+                    colleagues: resolvers.Query.usersInfo(_, { userIds: user.colleagues } )
+                }
             }
             catch (err) {
                 throw new Error(err)
@@ -74,7 +77,10 @@ const resolvers = {
                     }
                 })
                 return suggestions.map(user => {
-                    return { ...user._doc }
+                    return {
+                        ...user._doc,
+                        colleagues: resolvers.Query.usersInfo(_, { userIds: user.colleagues } )
+                    }
                 })
             }
             catch (err) {
