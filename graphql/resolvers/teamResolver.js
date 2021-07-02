@@ -151,9 +151,21 @@ const resolvers = {
             try {
                 const team = await Team.findById(teamId)
 
+                const members = team.members.map(m => m.toString())
+
                 if (!team) {
                     throw new Error("Team not found.")
                 }
+
+                const teamUpdate = await Team.findByIdAndUpdate(
+                    { _id: teamId },
+                    {
+                        $set: {
+                            members: [ ...team.members.filter(member => member != user._id) ]
+                        }
+                    }, { new: true }
+                )
+
                 const userUpdate = await User.findByIdAndUpdate(
                     { _id: user._id },
                     {
@@ -165,14 +177,14 @@ const resolvers = {
 
                 await context.pubsub.publish(REJECT_TEAM_INVITE, {
                     rejectTeamInvite: {
-                        ...userUpdate._doc,
+                        user: { ...userUpdate._doc } ,
                         teamId,
-                        subscribers: [ ...team.members.filter(member => member !== user._id) ],
+                        subscribers: [ ...members.filter(member => member !== user._id) ],
                     }
                 })
 
                 return {
-                    ...userUpdate._doc,
+                    user: { ...userUpdate._doc },
                     teamId,
                 }
             }

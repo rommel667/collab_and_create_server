@@ -141,8 +141,8 @@ const typeDefs = gql`
 
     type Query {
         myInfo: User!
-        userInfo: User!
-        usersInfo: [User]!
+        userInfo(userId: ID!): User!
+        usersInfo(userIds: [ID]!): [User]!
         colleagues: [User]!
         suggestions: [User]!
         pendingInvitesRequest: [User]!

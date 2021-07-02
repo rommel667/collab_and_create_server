@@ -36,12 +36,13 @@ const resolvers = {
                 throw new Error(err)
             }
         },
-        userInfo: async (_, { userId }, context) => {
+        userInfo: async (_, { userId }) => {
             console.log("userInfo", userId);
             try {
                 const user = await User.findById(userId)
                 return {
                     ...user._doc,
+                    createdAt: new Date(user.createdAt).toISOString(),
                     colleagues: resolvers.Query.usersInfo(_, { userIds: user.colleagues } )
                 }
             }
