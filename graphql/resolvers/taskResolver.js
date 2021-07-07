@@ -148,7 +148,7 @@ const resolver = {
 
 
                 if (updatedSourceColumn && updatedDestinationColumn) {
-                    return { message: "Update successful", sourceColumnId, destinationColumnId, taskId }
+                    return { message: "Update successful", sourceColumnId, destinationColumnId, taskId, projectId }
                 } else {
                     return { message: "Update failed" }
                 }
@@ -164,6 +164,7 @@ const resolver = {
             subscribe: withFilter(
                 (_, __, { pubsub }) => pubsub.asyncIterator(NEW_TASK),
                 (payload, variables) => {
+                    console.log("newTaskSubscription");
                     return (payload.newTask.confirmedMembers.includes(variables.userId));
                 },
             ),
@@ -172,6 +173,7 @@ const resolver = {
             subscribe: withFilter(
                 (_, __, { pubsub }) => pubsub.asyncIterator(MOVE_TASK),
                 (payload, variables) => {
+                    console.log("moveTaskSubscription");
                     return (payload.moveTask.confirmedMembers.includes(variables.userId));
                 },
             ),

@@ -9,11 +9,12 @@ import { withFilter } from 'graphql-subscriptions'
 
 
 const NEW_PROJECT = 'NEW_PROJECT'
+const ACCEPT_PROJECT_INVITE = 'ACCEPT_PROJECT_INVITE'
 
 export default {
     Query: {
         projectsByUser: async (_, __, context) => {
-            console.log("projects");
+            console.log("projects WHY WHY");
             const user = await checkAuth(context)
             try {
                 const projects = await Project.find({ confirmedMembers: user._id })
@@ -26,8 +27,8 @@ export default {
                         createdBy: userResolver.Query.userInfo(_, { userId: project.createdBy }),
                         confirmedMembers: userResolver.Query.usersInfo(_, { userIds: project.confirmedMembers }),
                         unconfirmMembers: userResolver.Query.usersInfo(_, { userIds: project.unconfirmMembers }),
-                        createdAt: project.createdAt.toISOString(),
-                        updatedAt: project.updatedAt.toISOString(),
+                        createdAt: new Date(project.createdAt).toISOString(),
+                        updatedAt: new Date(project.updatedAt).toISOString(),
                         taskColumns: taskColumnResolver.Query.taskColumnsByProject(_, { taskColumnIds: project.taskColumns }),
                         noteCategories: noteCategoryResolver.Query.noteCategoriesByProject(_, { noteCategoryIds: project.noteCategories })
                     }
@@ -89,7 +90,7 @@ export default {
             }
         },
         unconfirmProjectInvites: async (_, __, context) => {
-            console.log("projects");
+            console.log("unconfirmProjectInvites");
             const user = await checkAuth(context)
             try {
                 const projects = await Project.find({ unconfirmMembers: user._id })
@@ -127,7 +128,7 @@ export default {
                 })
                 const result = await newProject.save()
 
-                context.pubsub.publish(NEW_PROJECT, {
+                await context.pubsub.publish(NEW_PROJECT, {
                     newProject: {
                         ...result._doc,
                         createdBy: user,
@@ -137,6 +138,7 @@ export default {
                 return {
                     ...result._doc,
                     createdBy: userResolver.Query.userInfo(_, { userId: result.createdBy }),
+                    createdAt: new Date(result.createdAt).toISOString(),
                     unconfirmMembers: userResolver.Query.usersInfo(_, { userIds: result.unconfirmMembers }),
                     confirmedMembers: userResolver.Query.usersInfo(_, { userIds: result.confirmedMembers }),
                 }
@@ -146,7 +148,7 @@ export default {
             }
         },
         acceptProjectInvite: async (_, { projectId }, context) => {
-            console.log("confirmProjectInvite", projectId);
+            console.log("acceptProjectInvite", projectId);
             const user = await checkAuth(context)
             try {
                 const project = await Project.findById(projectId)
@@ -166,12 +168,26 @@ export default {
                     { new: true }
                 )
 
+                console.log("RESULT",result);
+
+                await context.pubsub.publish(ACCEPT_PROJECT_INVITE, {
+                    acceptProjectInvite: {
+                        ...result._doc,
+                        confirmedMembers: userResolver.Query.usersInfo(_, { userIds: result.confirmedMembers }),
+                        createdAt: new Date(result.createdAt).toISOString(),
+                        subscribers: result.confirmedMembers.filter(m => m != user._id),
+                    }
+                })
+
 
                 return {
                     ...result._doc,
                     createdBy: userResolver.Query.userInfo(_, { userId: result.createdBy }),
+                    createdAt: new Date(result.createdAt).toISOString(),
                     unconfirmMembers: userResolver.Query.usersInfo(_, { userIds: result.unconfirmMembers }),
                     confirmedMembers: userResolver.Query.usersInfo(_, { userIds: result.confirmedMembers }),
+                    taskColumns: taskColumnResolver.Query.taskColumnsByProject(_, { taskColumnIds: result.taskColumns }),
+                    noteCategories: noteCategoryResolver.Query.noteCategoriesByProject(_, { noteCategoryIds: result.noteCategories })
                 }
             }
             catch (err) {
@@ -214,9 +230,6 @@ export default {
     },
 
     Subscription: {
-        // newProject: {
-        //     subscribe: (_, __, { pubsub }) => pubsub.asyncIterator(NEW_PROJECT)
-        // },
         newProject: {
             subscribe: withFilter(
                 (_, __, { pubsub }) => pubsub.asyncIterator(NEW_PROJECT),
@@ -225,7 +238,15 @@ export default {
                 },
             ),
         },
-
+        acceptProjectInvite: {
+            subscribe: withFilter(
+                (_, __, { pubsub }) => pubsub.asyncIterator(ACCEPT_PROJECT_INVITE),
+                (payload, variables) => {
+                    console.log("PAYLOAD", payload);
+                    return (payload.acceptProjectInvite.subscribers.includes(variables.userId));
+                },
+            ),
+        },
 
     }
 

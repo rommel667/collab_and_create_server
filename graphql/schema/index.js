@@ -155,6 +155,7 @@ const typeDefs = gql`
         projectInfo(projectId: ID!): Project!
         projectsInfo(projectIds: [ID]!): [Project]!
         unconfirmProjectInvites: [Project]!
+        
 
         taskColumnsByProject(taskColumnIds: [ID]!): [TaskColumn]!
         taskColumnsPersonal(taskColumnIds: [ID]!): [TaskColumn]!
@@ -170,6 +171,7 @@ const typeDefs = gql`
     }
 
     type Mutation {
+        
         login(email: String!, password: String!): User!
         registerUser(userInput: UserInput!): User!
         signInWithGoogle(name: String!, email: String!, photo: String!, token: String!): User!
@@ -194,7 +196,10 @@ const typeDefs = gql`
         acceptProjectInvite(projectId: ID!): Project!
         rejectProjectInvite(projectId: ID!): Project!
 
+        
         newTaskColumn(columnName: String!, projectId: ID!): TaskColumn!
+        editTaskColumn(columnId: ID!, columnName: String!, projectId: ID!): TaskColumn!
+        deleteTaskColumn(columnId: ID!, projectId: ID!): TaskColumn!
         initialTaskColumnPersonal(columnName: String!, sequence: Int): TaskColumn!
         moveTaskColumn(taskColumnIds: [ID]!, projectId: ID!): NewSequence! 
 
@@ -222,8 +227,11 @@ const typeDefs = gql`
         rejectTeamInvite(userId: ID!): TeamInviteResponse!
 
         newProject(userId: ID!): Project
+        acceptProjectInvite(userId: ID!): Project 
 
         newTaskColumn(userId: ID!): TaskColumn!
+        editTaskColumn(userId: ID!): TaskColumn!
+        deleteTaskColumn(userId: ID!): TaskColumn!
         moveTaskColumn(userId: ID!): NewSequence
 
         newTask(userId: ID!): Task
