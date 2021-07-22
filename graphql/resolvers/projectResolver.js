@@ -14,7 +14,7 @@ const ACCEPT_PROJECT_INVITE = 'ACCEPT_PROJECT_INVITE'
 export default {
     Query: {
         projectsByUser: async (_, __, context) => {
-            console.log("projects WHY WHY");
+            console.log("projectsByUser");
             const user = await checkAuth(context)
             try {
                 const projects = await Project.find({ confirmedMembers: user._id })

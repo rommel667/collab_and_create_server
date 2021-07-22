@@ -3,7 +3,8 @@ import mongoose from 'mongoose'
 const taskSchema = new mongoose.Schema({
     description: {
         type: String,
-        required: true
+        required: true,
+        // index: true
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
@@ -11,7 +12,7 @@ const taskSchema = new mongoose.Schema({
     },
     columnId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'TaskColumn'
+        ref: 'TaskColumn',
     },
     projectId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -23,7 +24,9 @@ const taskSchema = new mongoose.Schema({
             ref: 'User'
         }
     ],
-
+   
 }, { timestamps: true })
+
+// taskSchema.index({ createdAt: 1 }, { expireAfterSeconds: 120, partialFilterExpression : {description: "delete" } })
 
 export default mongoose.model('Task', taskSchema)

@@ -21,6 +21,7 @@ const email = new Email({
 });
 
 export const mailer = (userEmail, name, code) => {
+    console.log(process.env.EMAIL_USER, process.env.EMAIL_PASSWORD);
     email.send({
         template: 'hello',
         message: {

@@ -7,6 +7,7 @@ import noteCategoryResolver from './noteCategoryResolver.js';
 import teamResolver from './teamResolver.js'
 import { mailer } from '../../utils/mailer.js';
 import { withFilter } from 'graphql-subscriptions'
+import { SET_ASYNC, GET_ASYNC, DEL_ASYNC, expiry } from '../../index.js'
 
 
 const SEND_INVITE = "SEND_INVITE"
@@ -20,16 +21,30 @@ const resolvers = {
             console.log("myInfo");
             const user = await checkAuth(context)
             try {
+                const reply = await GET_ASYNC(`${user._id}`)
+                if(reply) {
+                    console.log('using cached data myInfo');
+                    const jsonReply = { ...JSON.parse(reply) }
+                    return {
+                        ...jsonReply,
+                        personalTaskColumns: taskColumnResolver.Query.taskColumnsPersonal(_, { taskColumnIds: jsonReply.personalTaskColumns }),
+                        personalNoteCategories: noteCategoryResolver.Query.noteCategoriesPersonal(_, { noteCategoryIds: jsonReply.personalNoteCategories }),
+                    } 
+                }
+
                 const myInfo = await User.findById(user._id)
+                const result = {
+                    ...myInfo._doc,
+                    createdAt: new Date(myInfo.createdAt).toISOString(),
+                }
+                const saveResult = await SET_ASYNC(`${user._id}`, JSON.stringify(result), 'EX', expiry)
+                console.log('new data cached myInfo');
+            
                 return {
                     ...myInfo._doc,
                     createdAt: new Date(myInfo.createdAt).toISOString(),
-                    // colleagues: resolvers.Query.usersInfo(_, { userIds: myInfo.colleagues }),
-                    // verifiedTeams: teamResolver.Query.verifiedTeams(_, __, context),
                     personalTaskColumns: taskColumnResolver.Query.taskColumnsPersonal(_, { taskColumnIds: myInfo.personalTaskColumns }),
                     personalNoteCategories: noteCategoryResolver.Query.noteCategoriesPersonal(_, { noteCategoryIds: myInfo.personalNoteCategories }),
-                    // myPendingInvitesRequest: resolvers.Query.usersInfo(_, { userIds: myInfo.myPendingInvitesRequest }),
-                    // myPendingInvitesRespond: resolvers.Query.usersInfo(_, { userIds: myInfo.myPendingInvitesRespond })
                 }
             }
             catch (err) {
@@ -55,7 +70,7 @@ const resolvers = {
             try {
                 const users = await User.find({ _id: { $in: userIds } })
                 return users.map(user => {
-                    return { ...user._doc, password: " " }
+                    return { ...user._doc, password: null }
                 })
             }
             catch (err) {
@@ -248,7 +263,7 @@ const resolvers = {
             const user = await checkAuth(context)
             try {
                 const editedProfile = await User.findByIdAndUpdate(user._id, { $set: { name, photo, skills, portfolio } }, { new: true })
-
+                const saveResult = await SET_ASYNC(`${user._id}`, JSON.stringify(editedProfile), 'EX', expiry)
                 return { ...editedProfile._doc }
             }
             catch (err) {

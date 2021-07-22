@@ -80,7 +80,7 @@ const typeDefs = gql`
         sequence: Int!
         createdBy: User
         tasks: [Task]!
-        projectId: ID!
+        projectId: ID
         createdAt: String!
         updatedAt: String!
         
@@ -88,13 +88,13 @@ const typeDefs = gql`
     type NewSequence {
         newSequenceIds: [ID]!
         confirmedMembers: [ID]
-        projectId: ID!
+        projectId: ID
     }
 
     type Task {
         _id: ID!
         description: String!
-        createdBy: User!
+        createdBy: User
         inCharge: [User]
         createdAt: String!
         updatedAt: String!
@@ -162,6 +162,7 @@ const typeDefs = gql`
 
         tasksByProject(taskColumnIds: [ID]!): [Task!]!
         tasksByColumn(taskIds: [ID]!): [Task!]!
+        tasksByColumnPersonal(taskIds: [ID]!): [Task!]!
 
         noteCategoriesByProject(taskColumnIds: [ID]!): [NoteCategory]!
         noteCategoriesPersonal(taskColumnIds: [ID]!): [NoteCategory]!
@@ -201,11 +202,22 @@ const typeDefs = gql`
         editTaskColumn(columnId: ID!, columnName: String!, projectId: ID!): TaskColumn!
         deleteTaskColumn(columnId: ID!, projectId: ID!): TaskColumn!
         initialTaskColumnPersonal(columnName: String!, sequence: Int): TaskColumn!
-        moveTaskColumn(taskColumnIds: [ID]!, projectId: ID!): NewSequence! 
+        moveTaskColumn(taskColumnIds: [ID]!, projectId: ID!): NewSequence!
+        
+        newTaskColumnPersonal(columnName: String!): TaskColumn!
+        editTaskColumnPersonal(columnId: ID!, columnName: String!): TaskColumn!
+        deleteTaskColumnPersonal(columnId: ID!): TaskColumn!
+        moveTaskColumnPersonal(taskColumnIds: [ID]!): NewSequence!
 
         newTask(description: String!, inCharge: [ID], columnId: ID! projectId: ID!): Task!
-        newTaskPersonal(description: String!, columnId: ID!): Task!
+        editTask(taskId: ID!, description: String!, inCharge: [ID], projectId: ID!): Task!
+        deleteTask(taskId: ID!, columnId: ID!, projectId: ID!): Task!
         moveTask(sourceColumnId: ID! destinationColumnId: ID! taskId: ID! projectId: ID!): MoveTaskUpdate!
+
+        newTaskPersonal(description: String!, columnId: ID!): Task!
+        editTaskPersonal(taskId: ID!, description: String!): Task!
+        deleteTaskPersonal(taskId: ID!, columnId: ID!): Task!
+        moveTaskPersonal(sourceColumnId: ID! destinationColumnId: ID! taskId: ID!): MoveTaskUpdate!
 
         newNoteCategory(categoryName: String!, projectId: ID!): NoteCategory!
         initialNoteCategoryPersonal(categoryName: String!, sequence: Int): NoteCategory!
@@ -235,6 +247,8 @@ const typeDefs = gql`
         moveTaskColumn(userId: ID!): NewSequence
 
         newTask(userId: ID!): Task
+        editTask(userId: ID!): Task!
+        deleteTask(userId: ID!): Task!
         moveTask(userId: ID!): MoveTaskUpdate!
 
         newNoteCategory(userId: ID!): NoteCategory!
